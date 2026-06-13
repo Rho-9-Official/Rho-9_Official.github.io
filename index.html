@@ -353,7 +353,7 @@ textarea.deob-ta:focus{border-color:var(--cyan);}
 .picker-row-badge{font-family:var(--sans);font-size:8px;letter-spacing:.5px;text-transform:uppercase;padding:1px 4px;border-radius:2px;flex-shrink:0;}
 .deob-controls{flex-shrink:0;padding-bottom:4px;}
 .deob-section-lbl{font-family:var(--sans);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);}
-.deob-results-wrap{flex:1;overflow-y:auto;min-height:0;}
+.deob-results-wrap{flex:1;overflow-y:auto;min-height:200px;}
 .batch-result{padding:8px;background:var(--bg2);border:1px solid var(--border);margin-bottom:4px;}
 .batch-input-hdr{font-family:var(--sans);font-size:9px;letter-spacing:.5px;color:var(--text2);margin-bottom:4px;word-break:break-all;}
 .src-viewer{font-family:var(--mono);font-size:11px;line-height:1.6;white-space:pre-wrap;word-break:break-all;background:var(--bg2);border:1px solid var(--border);padding:10px;overflow-y:auto;max-height:480px;color:var(--text);}
@@ -488,23 +488,23 @@ textarea.deob-ta:focus{border-color:var(--cyan);}
                 <button class="btn-micro" id="deobClearBtn">Clear</button>
                 <span id="deobInputMeta" style="font-family:var(--sans);font-size:9px;color:var(--text2);margin-left:auto;"></span>
               </div>
-              <textarea class="deob-ta" id="deobInput" placeholder="Paste string, or click from picker above..."></textarea>
+              <textarea class="deob-ta" id="deobInput" placeholder="Paste string, or click from picker above... (Ctrl+Enter to run)" onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runAllPassesGlobal();}"></textarea>
               <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin:8px 0;">
                 <span class="deob-section-lbl">Auto</span>
-                <button class="btn-pass btn-pass-primary" id="deobRunAllBtn">&#9658; Run All</button>
+                <button class="btn-pass btn-pass-primary" id="deobRunAllBtn" onclick="runAllPassesGlobal()">&#9658; Run All</button>
                 <span class="deob-section-lbl" style="margin-left:6px;">Manual</span>
-                <button class="btn-pass" id="passBtn-base64" data-pass="base64">Base64</button>
-                <button class="btn-pass" id="passBtn-hex" data-pass="hex">Hex</button>
-                <button class="btn-pass" id="passBtn-hexStream" data-pass="hexStream">Hex Stream</button>
-                <button class="btn-pass" id="passBtn-unicode" data-pass="unicode">Unicode</button>
-                <button class="btn-pass" id="passBtn-urlDecode" data-pass="urlDecode">URL</button>
-                <button class="btn-pass" id="passBtn-javaByteArray" data-pass="javaByteArray">Java []</button>
-                <button class="btn-pass" id="passBtn-xorBrute" data-pass="xorBrute">XOR</button>
-                <button class="btn-pass" id="passBtn-rot13" data-pass="rot13">ROT13</button>
-                <button class="btn-pass" id="passBtn-rotBrute" data-pass="rotBrute">ROT-N</button>
-                <button class="btn-pass" id="passBtn-reverseStr" data-pass="reverseStr">Rev</button>
-                <button class="btn-pass" id="passBtn-htmlEntityDecode" data-pass="htmlEntityDecode">HTML Ent</button>
-                <button class="btn-pass" id="passBtn-charCodeArray" data-pass="charCodeArray">Char[]</button>
+                <button class="btn-pass" id="passBtn-base64" data-pass="base64" onclick="runPassGlobal('base64')">Base64</button>
+                <button class="btn-pass" id="passBtn-hex" data-pass="hex" onclick="runPassGlobal('hex')">Hex</button>
+                <button class="btn-pass" id="passBtn-hexStream" data-pass="hexStream" onclick="runPassGlobal('hexStream')">Hex Stream</button>
+                <button class="btn-pass" id="passBtn-unicode" data-pass="unicode" onclick="runPassGlobal('unicode')">Unicode</button>
+                <button class="btn-pass" id="passBtn-urlDecode" data-pass="urlDecode" onclick="runPassGlobal('urlDecode')">URL</button>
+                <button class="btn-pass" id="passBtn-javaByteArray" data-pass="javaByteArray" onclick="runPassGlobal('javaByteArray')">Java []</button>
+                <button class="btn-pass" id="passBtn-xorBrute" data-pass="xorBrute" onclick="runPassGlobal('xorBrute')">XOR</button>
+                <button class="btn-pass" id="passBtn-rot13" data-pass="rot13" onclick="runPassGlobal('rot13')">ROT13</button>
+                <button class="btn-pass" id="passBtn-rotBrute" data-pass="rotBrute" onclick="runPassGlobal('rotBrute')">ROT-N</button>
+                <button class="btn-pass" id="passBtn-reverseStr" data-pass="reverseStr" onclick="runPassGlobal('reverseStr')">Rev</button>
+                <button class="btn-pass" id="passBtn-htmlEntityDecode" data-pass="htmlEntityDecode" onclick="runPassGlobal('htmlEntityDecode')">HTML Ent</button>
+                <button class="btn-pass" id="passBtn-charCodeArray" data-pass="charCodeArray" onclick="runPassGlobal('charCodeArray')">Char[]</button>
               </div>
             </div>
             <div class="deob-results-wrap">
