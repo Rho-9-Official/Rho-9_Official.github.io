@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ModForensics v2.7 - Rho-9 Systems</title>
+<title>ModForensics v3.0 - Rho-9 Systems</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
@@ -396,12 +396,13 @@ textarea.deob-ta:focus{border-color:var(--cyan);}
     <div class="hdr-top-row">
       <img class="logo-img" alt="Rho-9">
       <div class="hdr-info">
-        <div class="hdr-title">ModForensics v2.7</div>
+        <div class="hdr-title">ModForensics v3.0</div>
         <div class="hdr-sub">Minecraft Mod Malware Forensics &mdash; Rho-9 Systems</div>
       </div>
     </div>
     <div class="app-header-pills">
       <div class="safety-pill">STATIC ONLY</div>
+      <div class="safety-pill" id="bridgePill" title="Local decompile bridge status — tap for settings" style="cursor:pointer;background:rgba(123,53,255,.10);border-color:rgba(123,53,255,.35);color:#7b35ff;animation:none;" onclick="showBridgeSettings()">BRIDGE: OFFLINE</div>
       <div class="safety-pill" id="cachePill" title="Tap to view session cache summary" style="cursor:pointer;background:rgba(27,255,122,.12);border-color:rgba(27,255,122,.25);color:#1bff7a;animation:none;" onclick="showCacheSummary()">CACHE OFF</div>
       <button class="cache-action-btn cache-clear-btn" id="cacheClearBtn" title="Clear session cache" style="display:none;" onclick="doClearCache()">&#10005;</button>
     </div>
@@ -415,7 +416,7 @@ textarea.deob-ta:focus{border-color:var(--cyan);}
       <span class="drop-icon">&#11015;</span>
       <span>
         <span class="drop-label">Drop or Click to Load Mod File</span>
-        <span class="drop-sub">.zip (decompiled jar) &middot; .litemod &middot; .mrpack &middot; .class &mdash; .jar not accepted</span>
+        <span class="drop-sub">.jar (via local bridge, if connected) &middot; .zip (decompiled jar) &middot; .litemod &middot; .mrpack &middot; .class</span>
       </span>
     </label>
   </div>
@@ -447,12 +448,13 @@ textarea.deob-ta:focus{border-color:var(--cyan);}
     <div class="content-area">
       <div id="welcomeScreen">
         <img class="logo-img" alt="">
-        <div class="welcome-title">ModForensics v2.7</div>
+        <div class="welcome-title">ModForensics v3.0</div>
         <div class="welcome-sub">Load a <strong>.zip</strong> (decompiled jar from decompiler.com), <strong>.litemod</strong>, <strong>.mrpack</strong>, or <strong>.class</strong> file.<br>
-        .jar files are not accepted — decompile first at <a href="https://www.decompiler.com" target="_blank" style="color:var(--pink)">decompiler.com</a> and load the resulting .zip.<br><br>
+        <strong>.jar</strong> works too if the local decompile bridge is running and connected (see the BRIDGE pill above) — otherwise decompile first at <a href="https://www.decompiler.com" target="_blank" style="color:var(--pink)">decompiler.com</a> and load the resulting .zip.<br><br>
         Full code viewer &middot; strings &middot; IOCs &middot; flagged files &middot; class refs &middot; mixin targets &middot; webhook kill.<br><br>
         <span style="color:var(--cyan);font-family:var(--sans);font-size:10px;letter-spacing:1px;">&#9670; NEW IN v2.6: Stargazers/Baikal &amp; WeedHack sigs &middot; Skidfuscator/JNIC detection &middot; Token-theft &amp; crypto-wallet IOCs &middot; Obfuscator heuristics &middot; Entropy flagging &middot; ROT-N brute &middot; Copy-to-clipboard</span><br>
-        <span style="color:var(--green);font-family:var(--sans);font-size:10px;letter-spacing:1px;">&#9670; NEW IN v2.7: Aho-Corasick O(n) scanner &middot; Full 202-opcode JVM table &middot; tableswitch/lookupswitch &middot; LOKI-style weighted scoring &middot; RFC 4648 URL-safe base64 &middot; SourceFile/InnerClass attributes &middot; Entropy threshold 6.0</span></div>
+        <span style="color:var(--green);font-family:var(--sans);font-size:10px;letter-spacing:1px;">&#9670; NEW IN v2.7: Aho-Corasick O(n) scanner &middot; Full 202-opcode JVM table &middot; tableswitch/lookupswitch &middot; LOKI-style weighted scoring &middot; RFC 4648 URL-safe base64 &middot; SourceFile/InnerClass attributes &middot; Entropy threshold 6.0</span><br>
+        <span style="color:var(--purple);font-family:var(--sans);font-size:10px;letter-spacing:1px;">&#9670; NEW IN v3.0: Local Decompile Bridge &middot; direct .jar support (static analysis only, no code execution) &middot; auto-installing CFR/Vineflower engine &middot; cross-platform (Windows/Linux/Termux) &middot; SQLite-blob job storage wiped on shutdown &middot; same-origin app serving</span></div>
       </div>
 
       <div id="mainUI">
@@ -679,6 +681,124 @@ function switchTab(name) {
   if(tp) tp.classList.add("active");
 }
 
+// ---- LOCAL DECOMPILE BRIDGE ----
+// Purpose string MUST match BRIDGE_PURPOSE in rho9_decompile_server.py, or
+// the handshake never matches — which is the safe failure mode: the UI just
+// falls back to today's "load a .zip from decompiler.com" behavior.
+var RHO9_BRIDGE_PURPOSE = "rho9-modforensics-decompile-bridge-v1";
+var RHO9_BRIDGE_PORTS = [8991, 8992, 8993, 8994, 8995];
+
+var Rho9Bridge = (function(){
+  var state = { url:null, caps:null, scanning:false };
+
+  function autoDecompileEnabled(){ return localStorage.getItem("rho9_bridge_auto") !== "0"; }
+  function setAutoDecompile(on){ localStorage.setItem("rho9_bridge_auto", on?"1":"0"); updatePill(); }
+
+  function probeOne(port){
+    var ctrl = (typeof AbortController!=="undefined") ? new AbortController() : null;
+    var t = ctrl ? setTimeout(function(){ ctrl.abort(); }, 1500) : null;
+    var opts = {cache:"no-store"};
+    if(ctrl) opts.signal = ctrl.signal;
+    return fetch("http://127.0.0.1:"+port+"/rho9/capabilities", opts)
+      .then(function(r){ if(t) clearTimeout(t); if(!r.ok) throw new Error("bad status "+r.status); return r.json(); })
+      .then(function(j){ if(j && j.purpose===RHO9_BRIDGE_PURPOSE) return {port:port, caps:j}; throw new Error("purpose mismatch"); })
+      .catch(function(err){
+        if(t) clearTimeout(t);
+        // Silent by design (a closed port on every scanned port is the
+        // normal "no bridge running" case) — but logged at debug level so
+        // a real block (CORS/Private-Network-Access/etc.) is visible in
+        // devtools instead of looking identical to "nothing there".
+        if(window.console && console.debug) console.debug("[rho9-bridge] probe port "+port+" failed: "+(err&&err.message));
+        return null;
+      });
+  }
+
+  function scan(){
+    if(state.scanning) return Promise.resolve(state.url);
+    state.scanning = true;
+    return Promise.all(RHO9_BRIDGE_PORTS.map(probeOne)).then(function(results){
+      var hit = results.filter(function(r){ return r; })[0];
+      if(hit){ state.url = "http://127.0.0.1:"+hit.port; state.caps = hit.caps; }
+      else { state.url = null; state.caps = null; }
+      state.scanning = false;
+      updatePill();
+      return state.url;
+    });
+  }
+
+  function updatePill(){
+    var el = document.getElementById("bridgePill");
+    if(!el) return;
+    if(state.url && state.caps){
+      var ready = !!state.caps.ready;
+      el.textContent = "BRIDGE: " + (ready ? "ONLINE" : "NO ENGINE");
+      el.style.borderColor = ready ? "var(--green)" : "var(--amber)";
+      el.style.color = ready ? "var(--green)" : "var(--amber)";
+    } else {
+      el.textContent = "BRIDGE: OFFLINE";
+      el.style.borderColor = "rgba(123,53,255,.35)";
+      el.style.color = "#7b35ff";
+    }
+  }
+
+  function isReady(){ return !!(state.url && state.caps && state.caps.ready); }
+  function isFound(){ return !!state.url; }
+  function getCaps(){ return state.caps; }
+
+  async function decompileToZip(file){
+    if(!isReady()) throw new Error("Bridge not connected or decompiler not ready.");
+    var body = await file.arrayBuffer();
+    var resp = await fetch(state.url+"/rho9/decompile", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-Rho9-Purpose": RHO9_BRIDGE_PURPOSE,
+        "X-Filename": encodeURIComponent(file.name)
+      },
+      body: body
+    });
+    if(!resp.ok){
+      var msg = "Bridge decompile failed (HTTP "+resp.status+")";
+      try{ var j=await resp.json(); if(j&&j.error) msg=j.error; }catch(e){}
+      throw new Error(msg);
+    }
+    return await resp.arrayBuffer();
+  }
+
+  return {
+    scan:scan, isReady:isReady, isFound:isFound, getCaps:getCaps,
+    decompileToZip:decompileToZip,
+    autoDecompileEnabled:autoDecompileEnabled, setAutoDecompile:setAutoDecompile,
+    updatePill:updatePill
+  };
+})();
+
+function showBridgeSettings(){
+  Rho9Bridge.scan().then(function(){
+    var caps = Rho9Bridge.getCaps();
+    var found = Rho9Bridge.isFound();
+    var ready = Rho9Bridge.isReady();
+    var auto = Rho9Bridge.autoDecompileEnabled();
+    var body = "<div style=\"font-family:var(--mono);font-size:11px;line-height:1.9;\">";
+    body += "<div><span style=\"color:var(--text2);\">Status:</span> " +
+      (found ? (ready ? "<span style=\"color:var(--green);\">Connected &amp; ready</span>"
+                      : "<span style=\"color:var(--amber);\">Connected — decompiler not set up yet</span>")
+             : "<span style=\"color:var(--text2);\">Not found</span>") + "</div>";
+    if(found && caps){
+      body += "<div><span style=\"color:var(--text2);\">Engine:</span> " + esc(caps.engine||"n/a") + "</div>";
+      body += "<div><span style=\"color:var(--text2);\">Bridge version:</span> " + esc(caps.version||"n/a") + "</div>";
+      if(caps.setup_message) body += "<div style=\"margin-top:6px;color:var(--amber);\">" + esc(caps.setup_message) + "</div>";
+    } else {
+      body += "<div style=\"margin-top:6px;color:var(--text2);\">Start the local bridge with:<br><span class=\"code-viewer\" style=\"display:inline-block;margin-top:4px;\">python rho9_decompile_server.py</span><br><br>Then open this page from the bridge itself (avoids browser cross-origin quirks entirely) at whatever address it prints on startup, e.g.<br><span class=\"code-viewer\" style=\"display:inline-block;margin-top:4px;\">http://127.0.0.1:8991/</span></div>";
+    }
+    body += "<div style=\"margin-top:12px;\"><label style=\"cursor:pointer;\"><input type=\"checkbox\" id=\"bridgeAutoToggle\" "+(auto?"checked":"")+" onchange=\"Rho9Bridge.setAutoDecompile(this.checked)\"> Auto-decompile .jar files when the bridge is connected</label></div>";
+    body += "<div style=\"margin-top:6px;color:var(--text3);font-size:10px;\">When off, or when no bridge is found, .jar drops fall back to the manual decompiler.com flow — nothing changes automatically without this being on.</div>";
+    body += "<div style=\"margin-top:10px;\"><button class=\"btn-close-m\" onclick=\"Rho9Bridge.scan().then(function(){ showBridgeSettings(); })\">Rescan</button></div>";
+    body += "</div>";
+    showInfoModal("Local Decompile Bridge", body);
+  });
+}
+
 // ---- FILE INPUT ----
 var dropTarget = document.getElementById("dropTarget");
 var fileInput  = document.getElementById("fileInput");
@@ -700,8 +820,20 @@ function queueFiles(fileList){
     var f = fileList[i];
     var ext = f.name.toLowerCase().split(".").pop();
     if(ext==="jar"){
-      showInfoModal("Unsupported Format","<div class=\"err-box\">Direct .jar files are not supported.<br><br>Decompile it at <a href=\"https://www.decompiler.com\" target=\"_blank\" style=\"color:var(--pink)\">decompiler.com</a>, then load the resulting .zip here.</div>");
-      continue;
+      // Bridge not connected, or found but not ready, or auto-decompile
+      // turned off — fall straight back to the original behavior, unchanged.
+      if(!(Rho9Bridge.isReady() && Rho9Bridge.autoDecompileEnabled())){
+        var bridgeHint;
+        if(!Rho9Bridge.isFound()){
+          bridgeHint = "Decompile it at <a href=\"https://www.decompiler.com\" target=\"_blank\" style=\"color:var(--pink)\">decompiler.com</a>, then load the resulting .zip here. (Or start the local decompile bridge — see the BRIDGE pill above.)";
+        } else if(!Rho9Bridge.isReady()){
+          bridgeHint = "A local decompile bridge is connected but its decompiler engine isn't set up yet — check the BRIDGE pill above. Meanwhile, decompile at <a href=\"https://www.decompiler.com\" target=\"_blank\" style=\"color:var(--pink)\">decompiler.com</a> and load the resulting .zip.";
+        } else {
+          bridgeHint = "A local decompile bridge is connected, but auto-decompile is turned off (see the BRIDGE pill above). Turn it on, or decompile at <a href=\"https://www.decompiler.com\" target=\"_blank\" style=\"color:var(--pink)\">decompiler.com</a> and load the resulting .zip.";
+        }
+        showInfoModal("Unsupported Format","<div class=\"err-box\">Direct .jar files need decompilation first.<br><br>"+bridgeHint+"</div>");
+        continue;
+      }
     }
     var id = ++_queueIdCounter;
     _fileQueue.push({file:f, id:id, status:"queued"});
@@ -714,6 +846,7 @@ function queueFiles(fileList){
 function detectFileType(name){
   var n = name.toLowerCase();
   if(n.endsWith(".class")) return {label:"CLASS", cls:"cls"};
+  if(n.endsWith(".jar")) return {label:"JAR\u2192BRIDGE", cls:"decomp"};
   // Patterns indicating a decompiled jar export
   if(n.indexOf("decompil")>=0 || n.indexOf("source")>=0 ||
      n.indexOf("_com.zip")>=0 || n.indexOf("-sources")>=0) return {label:"DECOMP ZIP", cls:"decomp"};
@@ -1338,12 +1471,32 @@ async function processFile(file, mergeMode){
   document.getElementById("mainUI").style.display="flex";
   setStatus("Loading "+file.name+"...");
   var ext=file.name.toLowerCase().split(".").pop();
+  var bridgeBuf=null;
+  if(ext==="jar"){
+    // queueFiles() already gated this — bridge must be ready and auto-decompile
+    // on to get here at all. Re-check anyway in case state changed mid-queue
+    // (e.g. bridge dropped between queueing and processing).
+    if(!Rho9Bridge.isReady()){
+      setStatus("ERROR: local decompile bridge not connected/ready");
+      showInfoModal("Bridge Required","<div class=\"err-box\">This .jar needs the local decompile bridge, and it isn't ready right now.<br><br>Check the BRIDGE pill above, or decompile manually at <a href=\"https://www.decompiler.com\" target=\"_blank\" style=\"color:var(--pink)\">decompiler.com</a> and load the resulting .zip.</div>");
+      return;
+    }
+    setStatus("Decompiling "+file.name+" via local bridge...");
+    try{
+      bridgeBuf = await Rho9Bridge.decompileToZip(file);
+    }catch(err){
+      setStatus("ERROR: bridge decompile failed");
+      showInfoModal("Decompile Failed","<div class=\"err-box\">"+esc(err.message)+"</div><br>You can still decompile manually at <a href=\"https://www.decompiler.com\" target=\"_blank\" style=\"color:var(--pink)\">decompiler.com</a> and load the resulting .zip.");
+      return;
+    }
+    ext="zip"; // decompiled result is a zip of .java files — hand off to the existing zip pipeline below
+  }
   if(ext==="class"){
     var buf=await file.arrayBuffer();
     processClassBuf(file.name, buf);
   } else {
     try{
-      var buf=await file.arrayBuffer();
+      var buf=bridgeBuf || await file.arrayBuffer();
       var zip=await JSZip.loadAsync(buf);
       var entries=[]; zip.forEach(function(p,e){ if(!e.dir) entries.push({path:p,entry:e}); });
 
@@ -2458,7 +2611,7 @@ function downloadReport(){
       '<div class="hdr-top-row">'+
         '<img class="logo-img" src="'+LOGO_URI+'" alt="Rho-9" style="height:72px;flex-shrink:0;">'+
         '<div class="hdr-info">'+
-          '<div class="hdr-title">ModForensics v2.7</div>'+
+          '<div class="hdr-title">ModForensics v3.0</div>'+
           '<div class="hdr-sub">Minecraft Mod Malware Forensics &mdash; Rho-9 Systems</div>'+
         '</div>'+
       '</div>'+
@@ -2562,6 +2715,10 @@ function escAttr(s){ return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&q
   var killModal=document.getElementById('killModal'); if(killModal) killModal.addEventListener('click',function(e){ if(e.target===killModal) closeKillModal(); });
   var deobInput=document.getElementById('deobInput'); if(deobInput) deobInput.addEventListener('input',function(){ onDeobInputChange(); });
 })();
+
+// Initial bridge scan on load, so the pill reflects real status without
+// needing the user to open the settings panel first.
+Rho9Bridge.scan();
 </script>
 </body>
 </html>
