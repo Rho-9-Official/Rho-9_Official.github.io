@@ -295,6 +295,60 @@ textarea.deob-ta:focus{border-color:var(--cyan);}
   .ov-threat{flex-wrap:wrap;}
   .stat-grid{grid-template-columns:repeat(4,1fr);}
 }
+/* ===== DESKTOP LAYOUT (900px+) =====
+   Mobile stays exactly as-is above. This section only reworks how the
+   existing tabs use extra horizontal space: content gets centered under
+   a readable max-width, and list/card panels that used to be one long
+   stacked column become multi-column grids. No HTML/JS structure was
+   changed — these rules target the same elements the app already renders. */
+@media(min-width:760px){
+  .app-header{flex-direction:row;align-items:center;gap:16px;padding:10px 24px;}
+  .app-header-pills{margin-left:auto;}
+  .drop-zone{padding:10px 24px;}
+  .file-queue{padding:0 24px 8px;}
+  .sidebar{width:190px;}
+  .tab-btn{padding:9px 14px;font-size:11.5px;}
+  .tab-icon{font-size:14px;}
+
+  /* center all tab content under a readable max-width instead of stretching edge-to-edge */
+  .tab-panel{padding:22px 32px;}
+  .tab-panel.active{align-items:center;}
+  .tab-panel.active>*{width:100%;max-width:1400px;}
+
+  .ov-threat{max-width:900px;gap:16px;}
+  .ov-threat-bar-wrap{max-width:460px;flex:none;width:460px;}
+  .stat-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+
+  /* lists that used to be a single full-width stacked column become grids */
+  .quick-ioc-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;}
+  .flagged-quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;}
+  .str-list-global,.str-list,.ref-list,.sig-list,#iocListBody,#classListBody{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:8px;align-content:start;
+  }
+  .gstr-row,.str-row,.cref-row,.mref-row,.sig-row,.ioc-full-row,.class-row{margin-bottom:0;}
+
+  /* flagged + mixins tabs render cards straight into the tab-panel (no wrapper div),
+     so the panel itself becomes the grid; section header spans both columns */
+  #tp-flagged.active,#tp-mixins.active{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-content:start;
+    width:100%;max-width:1400px;margin:0 auto;
+  }
+  #tp-flagged.active .section-hdr,#tp-mixins.active .section-hdr{grid-column:1/-1;margin-top:0;}
+  .flagged-card,.mixin-row{margin-bottom:0;}
+
+  .wh-card{max-width:640px;}
+}
+@media(min-width:1100px){
+  .sidebar{width:220px;}
+}
+@media(min-width:1500px){
+  .tab-panel.active>*{max-width:1600px;}
+  #tp-flagged.active,#tp-mixins.active{max-width:1600px;}
+  .quick-ioc-list,.flagged-quick{grid-template-columns:repeat(auto-fill,minmax(320px,1fr));}
+  .str-list-global,.str-list,.ref-list,.sig-list,#iocListBody,#classListBody,#tp-flagged.active,#tp-mixins.active{
+    grid-template-columns:repeat(3,1fr);
+  }
+}
 .decoded-row{padding:8px 10px;border-bottom:1px solid var(--border);background:rgba(255,53,53,.03);}
 .decoded-field-name{font-family:var(--sans);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text2);margin-bottom:3px;}
 .decoded-key-badge{background:rgba(255,53,53,.15);color:var(--red);padding:1px 5px;font-size:9px;border-radius:2px;margin-left:6px;}
@@ -765,9 +819,43 @@ var Rho9Bridge = (function(){
     return await resp.arrayBuffer();
   }
 
+  async function saveSession(reportObj){
+    if(!isReady()) return false;
+    try{
+      var resp = await fetch(state.url+"/rho9/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Rho9-Purpose": RHO9_BRIDGE_PURPOSE },
+        body: JSON.stringify(reportObj)
+      });
+      return resp.ok;
+    }catch(e){ return false; }
+  }
+
+  async function fetchSession(){
+    if(!isReady()) return null;
+    try{
+      var resp = await fetch(state.url+"/rho9/session", {
+        headers: { "X-Rho9-Purpose": RHO9_BRIDGE_PURPOSE }, cache: "no-store"
+      });
+      if(!resp.ok) return null; // includes the normal "no saved session yet" 404 case
+      return await resp.json();
+    }catch(e){ return null; }
+  }
+
+  async function clearSession(){
+    if(!isReady()) return false;
+    try{
+      var resp = await fetch(state.url+"/rho9/session/clear", {
+        method: "POST", headers: { "X-Rho9-Purpose": RHO9_BRIDGE_PURPOSE }
+      });
+      return resp.ok;
+    }catch(e){ return false; }
+  }
+
   return {
     scan:scan, isReady:isReady, isFound:isFound, getCaps:getCaps,
     decompileToZip:decompileToZip,
+    saveSession:saveSession, fetchSession:fetchSession, clearSession:clearSession,
     autoDecompileEnabled:autoDecompileEnabled, setAutoDecompile:setAutoDecompile,
     updatePill:updatePill
   };
@@ -793,6 +881,10 @@ function showBridgeSettings(){
     }
     body += "<div style=\"margin-top:12px;\"><label style=\"cursor:pointer;\"><input type=\"checkbox\" id=\"bridgeAutoToggle\" "+(auto?"checked":"")+" onchange=\"Rho9Bridge.setAutoDecompile(this.checked)\"> Auto-decompile .jar files when the bridge is connected</label></div>";
     body += "<div style=\"margin-top:6px;color:var(--text3);font-size:10px;\">When off, or when no bridge is found, .jar drops fall back to the manual decompiler.com flow — nothing changes automatically without this being on.</div>";
+    if(ready){
+      body += "<div style=\"margin-top:12px;padding-top:10px;border-top:1px solid var(--border);\">The bridge remembers your working state across page refreshes. A single refresh restores it automatically; refreshing twice quickly clears it instead.</div>";
+      body += "<div style=\"margin-top:8px;\"><button class=\"btn-close-m\" style=\"color:var(--red);border-color:var(--red);\" onclick=\"Rho9Bridge.clearSession().then(function(){ showInfoModal('Local Decompile Bridge','<div class=\\\"ok-box\\\">Saved session cleared.</div>'); })\">Forget saved session</button></div>";
+    }
     body += "<div style=\"margin-top:10px;\"><button class=\"btn-close-m\" onclick=\"Rho9Bridge.scan().then(function(){ showBridgeSettings(); })\">Rescan</button></div>";
     body += "</div>";
     showInfoModal("Local Decompile Bridge", body);
@@ -2685,6 +2777,65 @@ function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")
 function escAttr(s){ return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 
 // ---- AES-GCM SESSION CACHE ----
+// ---- BRIDGE-BACKED SESSION PERSISTENCE ----
+// Separate from the lightweight encrypted localStorage cache below (which
+// only ever stored summary counts). This persists the FULL working state --
+// files, classes, IOCs, decompiled source -- to the bridge's SQLite store,
+// so a page refresh restores exactly where the analyst left off. Only
+// engages when a bridge is connected and ready; with no bridge, behavior is
+// unchanged and falls back to the summary-only local cache.
+function rho9SerializeReport(){
+  return {
+    files: S.files, classes: S.classes, iocs: S.iocs,
+    archiveName: S.archiveName, activeFile: S.activeFile,
+    // File objects aren't serializable and wouldn't survive a reload anyway --
+    // keep id/name only so a restored session can still show what was loaded.
+    loadedFiles: (S.loadedFiles||[]).map(function(lf){ return {id:lf.id, name:lf.name}; })
+  };
+}
+
+function rho9RestoreReport(data){
+  S.files = data.files || {};
+  S.classes = data.classes || {};
+  S.iocs = data.iocs || [];
+  S.archiveName = data.archiveName || null;
+  S.activeFile = data.activeFile || null;
+  S.loadedFiles = data.loadedFiles || [];
+  document.getElementById("welcomeScreen").style.display = "none";
+  document.getElementById("mainUI").style.display = "flex";
+  renderAll();
+}
+
+// "Double refresh to wipe": sessionStorage survives reloads of the same tab
+// but clears when the tab actually closes, which makes it the right signal
+// for "the user refreshed again quickly on purpose" vs. "this is just a
+// normal reload that should restore things." A single refresh always
+// restores -- only two refreshes within the window count as an explicit
+// "start over" request.
+var RHO9_DOUBLE_REFRESH_WINDOW_MS = 4000;
+function rho9CheckDoubleRefreshWipe(){
+  var now = Date.now();
+  var last = parseInt(sessionStorage.getItem("rho9_last_load_ts") || "0", 10);
+  sessionStorage.setItem("rho9_last_load_ts", String(now));
+  return !!(last && (now - last) < RHO9_DOUBLE_REFRESH_WINDOW_MS);
+}
+
+async function rho9HandleSessionOnLoad(){
+  var wipeRequested = rho9CheckDoubleRefreshWipe();
+  if(!Rho9Bridge.isReady()) return; // no bridge -- nothing server-side to restore or wipe
+  if(wipeRequested){
+    await Rho9Bridge.clearSession();
+    setStatus("Bridge session cleared (double refresh).");
+    return;
+  }
+  var data = await Rho9Bridge.fetchSession();
+  if(data && (Object.keys(data.files||{}).length || Object.keys(data.classes||{}).length)){
+    rho9RestoreReport(data);
+    setStatus("Restored previous session from bridge \u2014 "+Object.keys(S.files).length+" files, "+
+      Object.keys(S.classes).length+" classes. Refresh twice quickly to clear it.");
+  }
+}
+
 (function initCache(){
   var pill = document.getElementById('cachePill');
   async function getOrCreateKey(){ var existing=sessionStorage.getItem('rho9_cache_key'); if(existing){ var raw=Uint8Array.from(atob(existing),function(c){ return c.charCodeAt(0); }); return await crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},false,['encrypt','decrypt']); } var key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']); var exported=await crypto.subtle.exportKey('raw',key); sessionStorage.setItem('rho9_cache_key',btoa(String.fromCharCode(...new Uint8Array(exported)))); return key; }
@@ -2694,7 +2845,7 @@ function escAttr(s){ return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&q
   function syncButtons(on,meta){ var cb=document.getElementById('cacheClearBtn'); if(cb) cb.style.display=on?'inline-block':'none'; if(on&&meta&&pill){ var name=(meta.archiveName||'unknown').split('/').pop().replace(/\.[^.]+$/,''); pill.textContent='CACHE: '+name.slice(0,18)+(name.length>18?'…':''); } else if(pill){ pill.textContent='CACHE OFF'; } }
   function fullUpdatePill(meta){ var hasKey=!!sessionStorage.getItem('rho9_cache_key'); var hasDat=!!localStorage.getItem('rho9_cache'); var on=hasKey&&hasDat; if(pill){ pill.className=pill.className.replace(/cache-o[nf]+/g,'').trim(); pill.classList.add(on?'cache-on':'cache-off'); } syncButtons(on,meta||null); return on; }
   (async function(){ var d=await loadCache(); fullUpdatePill(d); if(d) setStatus('\u21bb Session cache: '+(d.archiveName||'unknown')+' \u2014 '+(d.iocCount||0)+' IOCs, '+(d.classCount||0)+' classes'); })();
-  window._rho9SaveCache=async function(){ await saveCache(); var d=await loadCache(); fullUpdatePill(d); };
+  window._rho9SaveCache=async function(){ await saveCache(); var d=await loadCache(); fullUpdatePill(d); if(Rho9Bridge.isReady()) Rho9Bridge.saveSession(rho9SerializeReport()); };
   window.showCacheSummary=async function(){ var d=await loadCache(); if(!d){ showInfoModal('Cache','<div class="err-box">No cache data available.</div>'); return; } var body='<div style="font-family:var(--mono);font-size:11px;line-height:1.8;">'; body+='<div><span style="color:var(--text2);">File:</span> '+esc(d.archiveName||'unknown')+'</div>'; body+='<div><span style="color:var(--text2);">IOCs:</span> '+(d.iocCount||0)+'</div>'; body+='<div><span style="color:var(--text2);">Classes:</span> '+(d.classCount||0)+'</div>'; body+='<div><span style="color:var(--text2);">Files:</span> '+(d.fileCount||0)+'</div>'; body+='<div><span style="color:var(--text2);">Saved:</span> '+new Date(d.savedAt).toLocaleString()+'</div>'; body+='</div><div style="margin-top:10px;font-size:10px;color:var(--text2);">Cache stores session metadata only.</div>'; showInfoModal('Session Cache Summary',body); };
   window.doClearCache=function(){ clearCache(); fullUpdatePill(null); setStatus('Session cache cleared.'); };
 })();
@@ -2717,8 +2868,9 @@ function escAttr(s){ return String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&q
 })();
 
 // Initial bridge scan on load, so the pill reflects real status without
-// needing the user to open the settings panel first.
-Rho9Bridge.scan();
+// needing the user to open the settings panel first. Session restore/wipe
+// check runs right after, once we know whether a bridge is actually ready.
+Rho9Bridge.scan().then(function(){ rho9HandleSessionOnLoad(); });
 </script>
 </body>
 </html>
