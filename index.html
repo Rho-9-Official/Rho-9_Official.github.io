@@ -277,6 +277,56 @@ textarea.deob-ta:focus{border-color:var(--cyan);}
 .btn-close-m{font-family:var(--sans);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:7px 14px;border:1px solid var(--border2);color:var(--text2);background:transparent;cursor:pointer;}
 .btn-cfm-kill{font-family:var(--sans);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:7px 14px;border:1px solid var(--red);color:var(--red);background:transparent;cursor:pointer;}
 .kill-modal-url{word-break:break-all;color:var(--purple);font-size:11px;margin:10px 0;padding:6px 8px;background:var(--bg);border:1px solid var(--border2);}
+/* ---- MANDATORY USAGE NOTICE ---- */
+.disc-overlay{position:fixed;inset:0;background:rgba(4,6,10,.94);z-index:10001;display:none;align-items:center;justify-content:center;padding:16px;}
+.disc-overlay.show{display:flex;}
+.disc-box{background:var(--bg2);border:1px solid var(--border2);width:100%;max-width:740px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 0 0 1px rgba(28,199,232,.07),0 22px 60px rgba(0,0,0,.65);}
+.disc-head{padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.disc-kicker{font-family:var(--sans);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--amber);}
+.disc-title{font-family:var(--sans);font-weight:900;font-size:21px;letter-spacing:2px;text-transform:uppercase;background:linear-gradient(90deg,var(--pink),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.15;margin-top:3px;}
+.disc-sub{font-family:var(--sans);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text2);margin-top:3px;}
+.disc-body{padding:16px 18px;overflow-y:auto;font-size:12px;line-height:1.75;color:var(--text);-webkit-overflow-scrolling:touch;}
+.disc-lead{border-left:2px solid var(--cyan);padding:11px 13px;background:var(--bg3);margin-bottom:12px;}
+.disc-lead strong{color:var(--cyan);}
+.disc-callout{border-left:2px solid var(--amber);padding:11px 13px;background:rgba(245,166,35,.05);margin-bottom:14px;}
+.disc-callout strong{color:var(--amber);}
+.disc-secs-hdr{font-family:var(--sans);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--text3);margin:0 0 7px 2px;}
+.disc-sec{border:1px solid var(--border);background:var(--bg3);margin-bottom:7px;}
+.disc-sec>summary{cursor:pointer;list-style:none;padding:9px 12px;font-family:var(--sans);font-size:12px;letter-spacing:1.3px;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:9px;user-select:none;-webkit-user-select:none;}
+.disc-sec>summary::-webkit-details-marker{display:none;}
+.disc-sec>summary::marker{content:"";}
+.disc-sec>summary:before{content:"+";color:var(--cyan);font-family:var(--mono);font-size:15px;line-height:1;width:11px;flex-shrink:0;}
+.disc-sec[open]>summary:before{content:"\2013";}
+.disc-sec>summary:hover{color:var(--cyan);background:var(--bg4);}
+.disc-sec[open]>summary{color:var(--cyan);border-bottom:1px solid var(--border);}
+.disc-sec-body{padding:10px 14px 12px 32px;font-size:11.5px;line-height:1.8;color:var(--text2);}
+.disc-sec-body strong{color:var(--text);}
+.disc-sec-body p{margin-bottom:8px;}
+.disc-sec-body ul,.disc-sec-body ol{margin:6px 0 8px 18px;}
+.disc-sec-body li{margin-bottom:6px;}
+.disc-table{width:100%;border-collapse:collapse;margin:6px 0 8px;font-size:11px;}
+.disc-table th{text-align:left;font-family:var(--sans);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text2);border-bottom:1px solid var(--border2);padding:5px 6px;}
+.disc-table td{border-bottom:1px solid var(--border);padding:5px 6px;vertical-align:top;}
+.disc-band{font-family:var(--sans);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:1px 6px;border:1px solid currentColor;display:inline-block;white-space:nowrap;}
+.disc-foot{padding:12px 18px;border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:var(--bg2);}
+.disc-foot-note{font-size:10px;color:var(--text3);flex:1;min-width:200px;line-height:1.55;}
+.btn-disc-ack{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:11px 22px;border:1px solid var(--cyan);color:var(--cyan);background:rgba(28,199,232,.06);cursor:pointer;transition:all .15s;flex-shrink:0;}
+.btn-disc-ack:hover{background:rgba(28,199,232,.16);}
+.btn-disc-ack:focus{outline:1px solid var(--cyan);outline-offset:2px;}
+@media(max-width:560px){.disc-title{font-size:16px;}.disc-body{padding:13px 14px;font-size:11.5px;}.disc-sec-body{padding-left:24px;}.btn-disc-ack{width:100%;}}
+.disc-sec-state{margin-left:auto;font-family:var(--sans);font-size:10px;letter-spacing:1px;color:var(--text3);white-space:nowrap;flex-shrink:0;}
+.disc-sec-state.running{color:var(--amber);}
+.disc-sec-state.paused{color:var(--purple);}
+.disc-sec-state.done{color:var(--green);}
+.disc-sec.done>summary{color:var(--green);}
+.disc-sec.done>summary:before{content:"\2713";}
+.disc-foot-left{flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px;}
+.disc-gate-bar{height:3px;background:var(--bg4);border:1px solid var(--border);overflow:hidden;}
+.disc-gate-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--pink),var(--cyan));transition:width .2s linear;}
+.disc-gate-status{font-family:var(--sans);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--amber);}
+.disc-gate-status.ok{color:var(--green);}
+.btn-disc-ack[disabled]{opacity:.5;cursor:not-allowed;border-color:var(--border2);color:var(--text3);background:transparent;}
+.btn-disc-ack[disabled]:hover{background:transparent;}
 .info-kv{margin-bottom:10px;}
 .empty{text-align:center;color:var(--text2);font-size:11px;padding:32px;}
 ::-webkit-scrollbar{width:4px;height:4px;}
@@ -596,6 +646,141 @@ textarea.deob-ta:focus{border-color:var(--cyan);}
     <div class="modal-btns">
       <button class="btn-close-m" id="killModalCancelBtn">Cancel</button>
       <button class="btn-cfm-kill" id="killModalConfirmBtn">DELETE Webhook</button>
+    </div>
+  </div>
+</div>
+
+<div class="disc-overlay" id="discModal" role="dialog" aria-modal="true" aria-labelledby="discTitle">
+  <div class="disc-box">
+    <div class="disc-head">
+      <div class="disc-kicker">&#9888; Mandatory notice &middot; Please read before submitting a file</div>
+      <div class="disc-title" id="discTitle">How to interpret a ModForensics result</div>
+      <div class="disc-sub">ModForensics v3.0.1 &middot; Rho-9 Systems &middot; Static analysis platform</div>
+    </div>
+
+    <div class="disc-body">
+      <div class="disc-lead">
+        <strong>The threat score is a triage indicator. It is not a verdict.</strong><br>
+        ModForensics performs automated static analysis and assigns a weighted numeric score based on the capabilities and indicators it can observe inside the submitted archive. An elevated score means the file contains behaviour that warrants human review. It does not, by itself, establish that the file is malicious, and it never has. A substantial proportion of entirely legitimate, widely distributed modifications score in the elevated bands for ordinary reasons, the most common of which is network access.
+      </div>
+
+      <div class="disc-callout">
+        <strong>The evidence is the product. The number is only the index.</strong><br>
+        Every score is published alongside the material that produced it: the flagged files, the extracted strings, the indicators of compromise, the class references, the mixin targets and the full decompiled source. That material is provided so that you will read it and reach your own final determination. Quoting a score without reviewing the evidence behind it is a misuse of this tool and is not a finding of any kind.
+      </div>
+
+      <div class="disc-secs-hdr">Detailed guidance &middot; expand as required</div>
+
+      <details class="disc-sec" data-sec="s1">
+        <summary>01 &middot; What the score actually measures<span class="disc-sec-state" data-state>45s</span></summary>
+        <div class="disc-sec-body">
+          <p>The score is a capped aggregate of weighted heuristics, normalised to a maximum of 100. Each contributing heuristic corresponds to a property that can be observed statically: a matched malware family signature, an indicator of compromise such as a hard-coded webhook endpoint, evidence of obfuscation, or a statistical anomaly such as an unusually high-entropy string.</p>
+          <p>The engine therefore measures <strong>capability and resemblance</strong>. It does not measure intent, authorship or outcome. No submitted code is executed at any stage, so no runtime behaviour is ever observed. Two archives that score identically may differ entirely in purpose, and only a human reading the evidence can distinguish between them.</p>
+        </div>
+      </details>
+
+      <details class="disc-sec" data-sec="s2">
+        <summary>02 &middot; Why a clean mod can legitimately score high<span class="disc-sec-state" data-state>45s</span></summary>
+        <div class="disc-sec-body">
+          <p>The following are normal, expected properties of professionally built modifications. Each one raises the score, because each one is also present in genuine malware. Their presence is a prompt to review, not an accusation.</p>
+          <ul>
+            <li><strong>Network access.</strong> Update checks, version manifests, distribution platform APIs (CurseForge, Modrinth), content delivery endpoints, server browsers, analytics, crash reporting and Discord Rich Presence all require outbound connections. The engine records outbound endpoints because credential theft uses the identical mechanism. A URL in a mod is a fact to be checked, not proof of anything.</li>
+            <li><strong>Obfuscation and name mangling.</strong> Commercial modifications, anti-cheat components, licensed plugins and any project shipped through an optimiser such as ProGuard will present shortened or randomised class names and unreadable control flow. This raises the score because obfuscation frustrates review, not because it is inherently hostile.</li>
+            <li><strong>High-entropy strings.</strong> Compressed resources, embedded images, base64 assets, certificates, licence tokens and encryption keys are all statistically indistinguishable from a packed payload at the string level.</li>
+            <li><strong>Reflection, Mixins and bytecode manipulation.</strong> The Forge and Fabric ecosystems are built on these mechanisms. Ordinary gameplay modifications routinely redirect, overwrite and inject into game internals as a matter of standard practice.</li>
+            <li><strong>Keyword collision with theft signatures.</strong> A modification that reads system properties for a diagnostic report, accesses the clipboard for a coordinate-sharing feature, or resolves the game directory for configuration will overlap textually with signatures derived from information stealers.</li>
+            <li><strong>Bundled and shaded dependencies.</strong> A shaded library carries its own indicators into the host archive, and those indicators are attributed to the archive as a whole.</li>
+          </ul>
+          <p>In short: the properties that make a modification powerful are the same properties that make malware possible. The tool cannot separate the two on your behalf.</p>
+        </div>
+      </details>
+
+      <details class="disc-sec" data-sec="s3">
+        <summary>03 &middot; Score bands and their intended meaning<span class="disc-sec-state" data-state>45s</span></summary>
+        <div class="disc-sec-body">
+          <table class="disc-table">
+            <tr><th>Band</th><th>Range</th><th>Intended operational meaning</th></tr>
+            <tr><td><span class="disc-band" style="color:var(--green);">Low risk</span></td><td>0 to 34</td><td>No strong indicators surfaced. Review remains advisable for any file obtained outside official distribution channels.</td></tr>
+            <tr><td><span class="disc-band" style="color:var(--amber);">Suspicious</span></td><td>35 to 69</td><td>Indicators are present and require human interpretation. This band is routinely occupied by legitimate networked modifications.</td></tr>
+            <tr><td><span class="disc-band" style="color:var(--red);">High threat</span></td><td>70 to 100</td><td>Multiple or high-weight indicators surfaced concurrently. Review is required before use, and the archive should not be executed until that review is complete.</td></tr>
+          </table>
+          <p>These thresholds are deliberately calibrated toward sensitivity. The tool is designed to prefer a false positive that an informed reader dismisses in a few minutes over a false negative that results in a compromised account. Elevated bands should therefore be expected during normal use.</p>
+        </div>
+      </details>
+
+      <details class="disc-sec" data-sec="s4">
+        <summary>04 &middot; Signal weighting applied by the engine<span class="disc-sec-state" data-state>45s</span></summary>
+        <div class="disc-sec-body">
+          <p>The current weighting model, for transparency. Individual contributions are capped, and the total is capped at 100.</p>
+          <table class="disc-table">
+            <tr><th>Signal</th><th>Contribution</th></tr>
+            <tr><td>Discord webhook endpoint</td><td>35 each, capped at 70</td></tr>
+            <tr><td>Telegram bot API or bot token (command and control)</td><td>30 each, capped at 60</td></tr>
+            <tr><td>Remote payload URL</td><td>20 each, capped at 40</td></tr>
+            <tr><td>Matched signature families (severity weighted)</td><td>capped at 40</td></tr>
+            <tr><td>Confirmed high-severity family match</td><td>20</td></tr>
+            <tr><td>Victim IP geolocation service</td><td>15</td></tr>
+            <tr><td>Known obfuscator detected</td><td>15</td></tr>
+            <tr><td>Three or more randomised class names</td><td>15</td></tr>
+            <tr><td>Cryptocurrency wallet address</td><td>10 each, capped at 20</td></tr>
+            <tr><td>Three or more high-entropy strings</td><td>3 each, capped at 15</td></tr>
+            <tr><td>Flagged files</td><td>5 each, capped at 15</td></tr>
+            <tr><td>XOR or static string obfuscation</td><td>10</td></tr>
+          </table>
+          <p>Note that several of these can accumulate on a single legitimate archive. A networked modification that ships obfuscated and bundles compressed assets can reach the upper band without containing a single malicious instruction.</p>
+        </div>
+      </details>
+
+      <details class="disc-sec" data-sec="s5">
+        <summary>05 &middot; Recommended review procedure<span class="disc-sec-state" data-state>45s</span></summary>
+        <div class="disc-sec-body">
+          <ol>
+            <li>Open the <strong>Overview</strong> tab and read the itemised reasons. The reasons, not the number, are the finding.</li>
+            <li>Open <strong>IOC</strong> and examine every endpoint individually. Establish whether each one resolves to a recognised vendor, platform or content delivery domain, or to an anonymous host, a raw paste service, a webhook or a bot API.</li>
+            <li>Open <strong>Inspector</strong> and read the call sites in context. Determine what triggers the network call, what data is assembled before it, and whether that data includes credentials, session material, tokens or file contents.</li>
+            <li>Review <strong>Strings</strong> and <strong>Classes</strong> for the paths and identifiers being touched, particularly launcher directories, browser profiles and session files.</li>
+            <li>Review <strong>Mixins</strong> for injection targets that are unrelated to the modification's advertised function.</li>
+            <li>Compare the archive against the author's published source repository and the official distribution listing. Verify that the file you analysed is the file the author actually published.</li>
+            <li>Record your conclusion and the evidence that supports it. Export the report if the finding needs to be shared.</li>
+          </ol>
+        </div>
+      </details>
+
+      <details class="disc-sec" data-sec="s6">
+        <summary>06 &middot; Known limitations of static analysis<span class="disc-sec-state" data-state>45s</span></summary>
+        <div class="disc-sec-body">
+          <ul>
+            <li>Analysis is static only. Code is never executed, so behaviour that materialises only at runtime is not observed.</li>
+            <li>Detection is signature and heuristic driven. Novel, targeted or heavily obfuscated payloads may not surface at all.</li>
+            <li><strong>A low score is not a certificate of safety.</strong> It indicates only that no strong indicator was surfaced by the current signature set.</li>
+            <li>Decompilation is approximate. Reconstructed source may be incomplete or misleading, particularly where obfuscation is present.</li>
+            <li>Signature sets and weights are revised over time. A result is valid for the version of the engine that produced it and should be re-run after significant updates.</li>
+            <li>The service is provided without warranty of any kind. Responsibility for the final determination, and for any action taken on the basis of it, rests entirely with the person conducting the review.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="disc-sec" data-sec="s7">
+        <summary>07 &middot; Responsible conduct when reporting a finding<span class="disc-sec-state" data-state>45s</span></summary>
+        <div class="disc-sec-body">
+          <p>Publicly attributing malicious intent to an author or project on the strength of a score alone is unsupported, damaging and frequently incorrect. Before any public statement:</p>
+          <ul>
+            <li>State the specific indicators observed and reproduce the evidence, rather than citing a number.</li>
+            <li>Confirm the finding against the original file from the official distribution channel, since repackaged and re-uploaded archives are a common source of false attribution.</li>
+            <li>Contact the maintainer privately first where the finding is ambiguous.</li>
+            <li>Escalate confirmed compromises to the hosting platform and, where relevant, to r/SusMinecraftMods so that other users can verify independently.</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+
+    <div class="disc-foot">
+      <div class="disc-foot-left">
+        <div class="disc-gate-bar"><div class="disc-gate-fill" id="discGateFill"></div></div>
+        <div class="disc-gate-status" id="discGateStatus">Open each section in turn and remain on it for 45 seconds &middot; 0 of 7 reviewed</div>
+        <div class="disc-foot-note">Sections open one at a time and the timer pauses if you leave this tab. Review progress is held in memory only: reloading the page restarts it. Once complete, acknowledgement is recorded in a first-party cookie on this device and expires automatically after 24 hours. No personal data is collected or transmitted, and submitted files never leave your browser.</div>
+      </div>
+      <button class="btn-disc-ack" id="discAckBtn" type="button" disabled>Locked &middot; 0 of 7 reviewed</button>
     </div>
   </div>
 </div>
@@ -2866,6 +3051,192 @@ async function rho9HandleSessionOnLoad(){
   var infoModal=document.getElementById('infoModal'); if(infoModal) infoModal.addEventListener('click',function(e){ if(e.target===infoModal) closeInfoModal(); });
   var killModal=document.getElementById('killModal'); if(killModal) killModal.addEventListener('click',function(e){ if(e.target===killModal) closeKillModal(); });
   var deobInput=document.getElementById('deobInput'); if(deobInput) deobInput.addEventListener('input',function(){ onDeobInputChange(); });
+})();
+
+// ---- MANDATORY USAGE NOTICE ----
+// Blocking review gate. The visitor must open every section and remain on it
+// for REQUIRED_MS before the acknowledgement button unlocks. Sections behave
+// as an accordion (one open at a time) so the dwell requirement cannot be
+// satisfied by opening everything at once. The timer only advances while the
+// tab is visible and a section is open. Review progress is intentionally held
+// in memory only: a reload restarts the review. Once acknowledged, a
+// first-party cookie suppresses the notice for 24 hours.
+(function(){
+  var NOTICE_COOKIE  = "mf_notice_ack";
+  var NOTICE_VERSION = "n1";   // bump this string to force every visitor to see the notice again
+  var NOTICE_TTL_H   = 24;
+  var REQUIRED_MS    = 45000;  // dwell time required per section
+  var TICK_MS        = 250;
+
+  var modal  = document.getElementById("discModal");
+  var ackBtn = document.getElementById("discAckBtn");
+  var fill   = document.getElementById("discGateFill");
+  var status = document.getElementById("discGateStatus");
+  if(!modal || !ackBtn) return;
+
+  var secs = Array.prototype.slice.call(modal.querySelectorAll("details.disc-sec"));
+  var total = secs.length;
+  var spent = {};        // section key -> ms accrued
+  var current = null;    // currently open section element
+  var lastTick = null;   // timestamp of previous accrual
+
+  /* ---------- cookie helpers ---------- */
+  function readCookie(name){
+    try{
+      var parts = document.cookie ? document.cookie.split(";") : [];
+      for(var i=0;i<parts.length;i++){
+        var c = parts[i].replace(/^\s+/,"");
+        if(c.indexOf(name+"=")===0) return decodeURIComponent(c.substring(name.length+1));
+      }
+    }catch(e){}
+    return null;
+  }
+  function writeCookie(name,value,hours){
+    try{
+      var d = new Date(); d.setTime(d.getTime()+hours*3600*1000);
+      var secure = (location.protocol==="https:") ? ";Secure" : "";
+      document.cookie = name+"="+encodeURIComponent(value)+";expires="+d.toUTCString()+";path=/;SameSite=Lax"+secure;
+    }catch(e){}
+  }
+  // Fallback for contexts where cookies are unavailable (file:// , blocked
+  // storage). Same 24h semantics, stored as an expiry stamp.
+  function readFallback(){
+    try{
+      var raw = localStorage.getItem(NOTICE_COOKIE);
+      if(!raw) return null;
+      var o = JSON.parse(raw);
+      if(!o || !o.exp || Date.now() > o.exp){ localStorage.removeItem(NOTICE_COOKIE); return null; }
+      return o.v || null;
+    }catch(e){ return null; }
+  }
+  function writeFallback(value,hours){
+    try{ localStorage.setItem(NOTICE_COOKIE, JSON.stringify({v:value, exp:Date.now()+hours*3600*1000})); }catch(e){}
+  }
+  function acknowledged(){
+    return readCookie(NOTICE_COOKIE)===NOTICE_VERSION || readFallback()===NOTICE_VERSION;
+  }
+
+  /* ---------- gate state ---------- */
+  function keyOf(el){ return el.getAttribute("data-sec"); }
+  function msOf(el){ return spent[keyOf(el)] || 0; }
+  function isDone(el){ return msOf(el) >= REQUIRED_MS; }
+  function doneCount(){
+    var n=0; for(var i=0;i<secs.length;i++){ if(isDone(secs[i])) n++; } return n;
+  }
+  function allDone(){ return doneCount() >= total; }
+
+  function render(){
+    for(var i=0;i<secs.length;i++){
+      var el = secs[i];
+      var badge = el.querySelector("[data-state]");
+      if(!badge) continue;
+      var done = isDone(el);
+      el.classList.toggle("done", done);
+      badge.className = "disc-sec-state";
+      if(done){
+        badge.classList.add("done");
+        badge.innerHTML = "&#10003; Reviewed";
+      } else if(el === current){
+        var left = Math.ceil((REQUIRED_MS - msOf(el))/1000);
+        if(document.hidden){
+          badge.classList.add("paused");
+          badge.innerHTML = "Paused &middot; " + left + "s left";
+        } else {
+          badge.classList.add("running");
+          badge.innerHTML = left + "s remaining";
+        }
+      } else if(msOf(el) > 0){
+        badge.innerHTML = Math.ceil((REQUIRED_MS - msOf(el))/1000) + "s outstanding";
+      } else {
+        badge.innerHTML = "45s";
+      }
+    }
+
+    var accrued = 0;
+    for(var j=0;j<secs.length;j++){ accrued += Math.min(msOf(secs[j]), REQUIRED_MS); }
+    var pct = Math.round((accrued / (REQUIRED_MS*total)) * 100);
+    if(fill) fill.style.width = pct + "%";
+
+    var d = doneCount();
+    if(allDone()){
+      if(status){ status.classList.add("ok"); status.innerHTML = "All sections reviewed &middot; you may continue"; }
+      ackBtn.disabled = false;
+      ackBtn.innerHTML = "I understand &middot; Continue";
+    } else {
+      if(status){
+        status.classList.remove("ok");
+        status.innerHTML = (current ? "Reviewing section &middot; " : "Open a section to begin &middot; ") + d + " of " + total + " reviewed";
+      }
+      ackBtn.disabled = true;
+      ackBtn.innerHTML = "Locked &middot; " + d + " of " + total + " reviewed";
+    }
+  }
+
+  /* ---------- accordion: one section open at a time ---------- */
+  secs.forEach(function(el){
+    el.addEventListener("toggle", function(){
+      if(el.open){
+        secs.forEach(function(other){ if(other !== el && other.open) other.open = false; });
+        current = el;
+        lastTick = Date.now();
+      } else if(current === el){
+        current = null;
+        lastTick = null;
+      }
+      render();
+    });
+  });
+
+  /* ---------- dwell timer ---------- */
+  setInterval(function(){
+    if(!modal.classList.contains("show")){ lastTick = null; return; }
+    if(document.hidden || !current || isDone(current)){ lastTick = null; render(); return; }
+    var now = Date.now();
+    if(lastTick === null){ lastTick = now; return; }
+    var delta = now - lastTick;
+    lastTick = now;
+    if(delta > 1000) delta = 1000;   // guard against background throttling and machine sleep
+    var k = keyOf(current);
+    spent[k] = Math.min(REQUIRED_MS, (spent[k] || 0) + delta);
+    render();
+  }, TICK_MS);
+
+  document.addEventListener("visibilitychange", function(){
+    lastTick = document.hidden ? null : Date.now();
+    render();
+  });
+
+  /* ---------- open / close ---------- */
+  function openNotice(){
+    modal.classList.add("show");
+    document.documentElement.style.overflow = "hidden";
+    if(!secs.some(function(el){ return el.open; }) && secs.length) secs[0].open = true;
+    render();
+  }
+  function closeNotice(){
+    modal.classList.remove("show");
+    document.documentElement.style.overflow = "";
+  }
+
+  ackBtn.addEventListener("click", function(){
+    if(!allDone()) return;   // defensive: button is also disabled
+    writeCookie(NOTICE_COOKIE, NOTICE_VERSION, NOTICE_TTL_H);
+    if(readCookie(NOTICE_COOKIE) !== NOTICE_VERSION) writeFallback(NOTICE_VERSION, NOTICE_TTL_H);
+    closeNotice();
+  });
+
+  // Hard block: overlay clicks and Escape do not dismiss the notice.
+  modal.addEventListener("click", function(e){ if(e.target===modal){ e.preventDefault(); e.stopPropagation(); } });
+  document.addEventListener("keydown", function(e){
+    if(!modal.classList.contains("show")) return;
+    var k = e.key || "";
+    if(k==="Escape" || k==="Esc" || e.keyCode===27){ e.preventDefault(); e.stopPropagation(); }
+  }, true);
+
+  // Exposed so the notice can be re-opened on demand, e.g. from a help link.
+  window.showUsageNotice = openNotice;
+
+  if(!acknowledged()) openNotice();
 })();
 
 // Initial bridge scan on load, so the pill reflects real status without
