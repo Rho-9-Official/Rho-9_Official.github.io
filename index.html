@@ -3067,11 +3067,16 @@ async function rho9HandleSessionOnLoad(){
   var NOTICE_TTL_H   = 24;
   var REQUIRED_MS    = 45000;  // dwell time required per section
   var TICK_MS        = 250;
+  // Hidden operator bypass: when a local decompile bridge is detected the
+  // review requirement is lifted silently and the gate UI is withdrawn.
+  // false -> any detected bridge lifts it. true -> engine must be ready too.
+  var BYPASS_REQUIRES_READY = false;
 
   var modal  = document.getElementById("discModal");
   var ackBtn = document.getElementById("discAckBtn");
   var fill   = document.getElementById("discGateFill");
   var status = document.getElementById("discGateStatus");
+  var gateBar= modal.querySelector(".disc-gate-bar");
   if(!modal || !ackBtn) return;
 
   var secs = Array.prototype.slice.call(modal.querySelectorAll("details.disc-sec"));
@@ -3116,6 +3121,17 @@ async function rho9HandleSessionOnLoad(){
     return readCookie(NOTICE_COOKIE)===NOTICE_VERSION || readFallback()===NOTICE_VERSION;
   }
 
+  /* ---------- hidden bypass: local decompile bridge ---------- */
+  // Tied directly to the bridge detection used by the BRIDGE pill, and
+  // re-evaluated on every render, so a bridge that comes online after page
+  // load unlocks the notice without a reload.
+  function bridgeBypass(){
+    try{
+      if(typeof Rho9Bridge === "undefined" || !Rho9Bridge) return false;
+      return BYPASS_REQUIRES_READY ? !!Rho9Bridge.isReady() : !!Rho9Bridge.isFound();
+    }catch(e){ return false; }
+  }
+
   /* ---------- gate state ---------- */
   function keyOf(el){ return el.getAttribute("data-sec"); }
   function msOf(el){ return spent[keyOf(el)] || 0; }
@@ -3126,10 +3142,12 @@ async function rho9HandleSessionOnLoad(){
   function allDone(){ return doneCount() >= total; }
 
   function render(){
+    var bypass = bridgeBypass();
     for(var i=0;i<secs.length;i++){
       var el = secs[i];
       var badge = el.querySelector("[data-state]");
       if(!badge) continue;
+      badge.style.display = bypass ? "none" : "";
       var done = isDone(el);
       el.classList.toggle("done", done);
       badge.className = "disc-sec-state";
@@ -3158,6 +3176,15 @@ async function rho9HandleSessionOnLoad(){
     if(fill) fill.style.width = pct + "%";
 
     var d = doneCount();
+    if(bypass){
+      if(gateBar) gateBar.style.display = "none";
+      if(status)  status.style.display  = "none";
+      ackBtn.disabled = false;
+      ackBtn.innerHTML = "I understand &middot; Continue";
+      return;
+    }
+    if(gateBar) gateBar.style.display = "";
+    if(status)  status.style.display  = "";
     if(allDone()){
       if(status){ status.classList.add("ok"); status.innerHTML = "All sections reviewed &middot; you may continue"; }
       ackBtn.disabled = false;
@@ -3210,7 +3237,7 @@ async function rho9HandleSessionOnLoad(){
   function openNotice(){
     modal.classList.add("show");
     document.documentElement.style.overflow = "hidden";
-    if(!secs.some(function(el){ return el.open; }) && secs.length) secs[0].open = true;
+    if(!bridgeBypass() && !secs.some(function(el){ return el.open; }) && secs.length) secs[0].open = true;
     render();
   }
   function closeNotice(){
@@ -3219,7 +3246,7 @@ async function rho9HandleSessionOnLoad(){
   }
 
   ackBtn.addEventListener("click", function(){
-    if(!allDone()) return;   // defensive: button is also disabled
+    if(!allDone() && !bridgeBypass()) return;   // defensive: button is also disabled
     writeCookie(NOTICE_COOKIE, NOTICE_VERSION, NOTICE_TTL_H);
     if(readCookie(NOTICE_COOKIE) !== NOTICE_VERSION) writeFallback(NOTICE_VERSION, NOTICE_TTL_H);
     closeNotice();
