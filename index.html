@@ -2893,7 +2893,8 @@ async function processFile(file, mergeMode){
       if(isModpackZip(entries)){
         await processModpackZip(entries, zip, file.name);
         deduplicateIOCs();
-        setStatus("Done (Modpack) — "+Object.keys(S.files).length+" files, "+S.iocs.length+" IOCs");
+        var _dc=S._modpackDecompiledCount||0;
+        setStatus("Done (Modpack"+(_dc?", "+_dc+" mod JAR"+(_dc===1?"":"s")+" decompiled":"")+") — "+Object.keys(S.files).length+" files, "+S.iocs.length+" IOCs");
         renderAll();
         if(window._rho9SaveCache) window._rho9SaveCache();
         return;
@@ -3009,6 +3010,8 @@ async function processModpackZip(entries, zip, filename){
   S.archiveName = filename;
   // Mark as modpack in state for rendering
   S._isModpack = true;
+  S._modpackDecompiledCount = 0;
+  S._modpackShallowCount = 0;
   // Read manifest.json if present
   var manifestEntry = entries.find(function(e){ return e.path.toLowerCase()==="manifest.json"; });
   var manifest = null;
@@ -3036,15 +3039,29 @@ async function processModpackZip(entries, zip, filename){
       var flagged=sigsFi.length>0||iocsFi.some(function(i){ return i.type==="webhook"; });
       S.files[path]={name:path.split("/").pop(),path:path,type:e2,text:text,flagged:flagged,sigs:sigsFi,infoSigs:infoFi4,isResource:isRes4,iocs:iocsFi,isModpackFile:true};
     }
-    // Attempt to process nested JARs within overrides/mods/
+    // Bundled mod JARs inside overrides/mods/: if the local bridge is connected,
+    // DECOMPILE each one and run the FULL source analysis (the same path a
+    // directly-dropped .jar takes), so the modpack's real risk is visible.
+    // Without the bridge, fall back to a shallow raw-bytecode class scan.
     if(e2==="jar"&&path.toLowerCase().indexOf("overrides/mods/")>=0){
       var jb=await entry.async("arraybuffer");
-      try{
-        var inner=await JSZip.loadAsync(jb);
-        var innerEntries=[]; inner.forEach(function(p2,ie2){ if(!ie2.dir) innerEntries.push({path:p2,entry:ie2}); });
-        if(isDecompiledZipFile(innerEntries)){
-          // it's already decompiled inside the modpack - won't happen but handle
-        } else {
+      var jarName=path.split("/").pop();
+      var decompiled=false;
+      if(window.Rho9Bridge && Rho9Bridge.isReady()){
+        try{
+          setStatus("Decompiling bundled mod "+jarName+" via local bridge...");
+          var jarFile=new File([jb], jarName, {type:"application/java-archive"});
+          var srcBuf=await Rho9Bridge.decompileToZip(jarFile);
+          var srcZip=await JSZip.loadAsync(srcBuf);
+          var srcEntries=[]; srcZip.forEach(function(p3,e3){ if(!e3.dir) srcEntries.push({path:p3,entry:e3}); });
+          await processDecompiledZip(srcEntries, srcZip, path+"!/");
+          decompiled=true;
+          S._modpackDecompiledCount=(S._modpackDecompiledCount||0)+1;
+        }catch(err){ /* fall through to the shallow scan below */ }
+      }
+      if(!decompiled){
+        try{
+          var inner=await JSZip.loadAsync(jb);
           var iPaths=Object.keys(inner.files);
           for(var j=0;j<iPaths.length;j++){
             var ip=iPaths[j], ie=inner.files[ip];
@@ -3052,9 +3069,10 @@ async function processModpackZip(entries, zip, filename){
               var cb2=await ie.async("arraybuffer"); processClassBuf(path+"!/"+ip,cb2);
             }
           }
-        }
-      }catch(err){}
-      if(!S.files[path]) S.files[path]={name:path.split("/").pop(),path:path,type:"jar",text:"[nested JAR in modpack]",flagged:false,sigs:[],iocs:[],isModpackFile:true};
+        }catch(err){}
+        S._modpackShallowCount=(S._modpackShallowCount||0)+1;
+      }
+      if(!S.files[path]) S.files[path]={name:jarName,path:path,type:"jar",text:decompiled?"[bundled mod JAR - decompiled and analysed]":"[bundled mod JAR - shallow class scan; connect the bridge for full analysis]",flagged:false,sigs:[],iocs:[],isModpackFile:true};
     }
   }
   // Store manifest data for overview display
@@ -3142,13 +3160,16 @@ function decodeJavaSourceArrays(text, path) {
   return decoded;
 }
 
-async function processDecompiledZip(entries, zip){
-  S.archiveName = S.archiveName || 'decompiled-source.zip';
-  S._isModpack = false;
+async function processDecompiledZip(entries, zip, pathPrefix){
+  pathPrefix = pathPrefix || '';
+  if(!pathPrefix){
+    S.archiveName = S.archiveName || 'decompiled-source.zip';
+    S._isModpack = false;
+  }
   var javaEntries = entries.filter(function(e){ return e.path.toLowerCase().endsWith('.java'); });
   var total = javaEntries.length, done = 0;
   for(var idx=0;idx<javaEntries.length;idx++){
-    var path = javaEntries[idx].path;
+    var path = pathPrefix + javaEntries[idx].path;
     var entry = javaEntries[idx].entry;
     done++;
     if(done % 5 === 0) setStatus('Parsing source ' + done + '/' + total + '...');
@@ -3201,7 +3222,7 @@ async function processDecompiledZip(entries, zip){
             "accesswidener","accesstransformer","cfgc","info","list","policy","sf","rsa","dsa"].indexOf(ext)>=0;
   });
   for(var idx=0;idx<otherEntries.length;idx++){
-    var path=otherEntries[idx].path, entry=otherEntries[idx].entry;
+    var path=pathPrefix + otherEntries[idx].path, entry=otherEntries[idx].entry;
     var ext=path.split('.').pop().toLowerCase();
     try{
       var text=await entry.async('text');
@@ -3536,7 +3557,14 @@ function renderOverview(){
     if(mp&&mp.name) h+="Name: <strong>"+esc(mp.name)+"</strong>";
     if(mp&&mp.version) h+=" v"+esc(mp.version);
     if(mp&&mp.minecraft&&mp.minecraft.version) h+=" &middot; MC "+esc(mp.minecraft.version);
-    h+="<br>This is a modpack manifest, not a decompiled mod JAR. The bundled mod JARs inside overrides/ have been scanned. To analyse a specific mod, decompile its .jar at <a href=\"https://www.decompiler.com\" target=\"_blank\">decompiler.com</a> and load the resulting .zip.</div>";
+    var dc=S._modpackDecompiledCount||0, sc=S._modpackShallowCount||0;
+    if(dc>0){
+      h+="<br>"+dc+" bundled mod JAR"+(dc===1?"":"s")+" inside overrides/mods/ "+(dc===1?"was":"were")+" decompiled via the local bridge and fully analysed; the score above reflects their decompiled source.";
+      if(sc>0) h+=" "+sc+" more could not be decompiled and got a shallow class scan only.";
+    } else {
+      h+="<br>This is a modpack manifest, not a decompiled mod JAR. The bundled mod JARs inside overrides/mods/ were given a shallow class scan only. Connect the local decompile bridge to auto-decompile and fully analyse them, or decompile a specific .jar at <a href=\"https://www.decompiler.com\" target=\"_blank\">decompiler.com</a> and load the resulting .zip.";
+    }
+    h+="</div>";
   }
 
   // ---- verdict card with score ring ----
