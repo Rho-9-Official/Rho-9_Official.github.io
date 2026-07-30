@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ModForensics v3.1.1 - Rho-9 Systems</title>
+<title>ModForensics v3.2.7 - Rho-9 Systems</title>
 <!-- JSZip v3.10.1 (MIT / GPLv3, https://stuk.github.io/jszip) inlined so the
      tool is fully functional offline from first load, with no CDN dependency. -->
 <script>
@@ -33,7 +33,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </style>
 <style>
 /* ============================================================================
-   ModForensics v3.1.1 — Rho-9 Systems
+   ModForensics v3.2.7 — Rho-9 Systems
    UI: reNgine dark theme (Velzon vertical layout, data-bs-theme="dark").
    Dark sidebar, dark topbar, dark canvas, dark elevated cards, soft-tint
    badges. reNgine's indigo is replaced with the Rho-9 cyan and magenta.
@@ -978,7 +978,7 @@ textarea.deob-ta:focus{border-color:var(--brand);}
 
       <div id="welcomeScreen">
         <img class="logo-img" alt="">
-        <div class="welcome-title">ModForensics v3.1.1</div>
+        <div class="welcome-title">ModForensics v3.2.7</div>
         <div class="welcome-sub">Load a <strong>.zip</strong> (decompiled jar from decompiler.com), <strong>.litemod</strong>, <strong>.mrpack</strong>, or <strong>.class</strong> file.<br>
         <strong>.jar</strong> works too if the local decompile bridge is running and connected (see the BRIDGE pill above), otherwise decompile first at <a href="https://www.decompiler.com" target="_blank">decompiler.com</a> and load the resulting .zip.<br><br>
         Full code viewer &middot; strings &middot; indicators &middot; flagged files &middot; class refs &middot; mixin targets &middot; webhook kill.
@@ -1056,7 +1056,7 @@ textarea.deob-ta:focus{border-color:var(--brand);}
     </div><!-- /.page-content -->
 
     <footer class="footer">
-      <span>ModForensics v3.1.1 &middot; Rho-9 Systems &middot; <a href="https://modforensics.rho-9.com" target="_blank">modforensics.rho-9.com</a></span>
+      <span>ModForensics v3.2.7 &middot; Rho-9 Systems &middot; <a href="https://modforensics.rho-9.com" target="_blank">modforensics.rho-9.com</a></span>
       <span>Static analysis only. No submitted code is executed. The score is a triage indicator, not a verdict.</span>
     </footer>
   </div><!-- /.main-content -->
@@ -1090,7 +1090,7 @@ textarea.deob-ta:focus{border-color:var(--brand);}
     <div class="disc-head">
       <div class="disc-kicker">&#9888; Mandatory notice &middot; Please read before submitting a file</div>
       <div class="disc-title" id="discTitle">How to interpret a ModForensics result</div>
-      <div class="disc-sub">ModForensics v3.1.1 &middot; Rho-9 Systems &middot; Static analysis platform</div>
+      <div class="disc-sub">ModForensics v3.2.7 &middot; Rho-9 Systems &middot; Static analysis platform</div>
     </div>
 
     <div class="disc-body">
@@ -1213,7 +1213,7 @@ textarea.deob-ta:focus{border-color:var(--brand);}
       <div class="disc-foot-left">
         <div class="disc-gate-bar"><div class="disc-gate-fill" id="discGateFill"></div></div>
         <div class="disc-gate-status" id="discGateStatus">Open each section in turn and remain on it for 45 seconds &middot; 0 of 7 reviewed</div>
-        <div class="disc-foot-note">Sections open one at a time and the timer pauses if you leave this tab. Review progress is held in memory only: reloading the page restarts it. Once complete, acknowledgement is recorded in a first-party cookie on this device and expires automatically after 24 hours. No personal data is collected or transmitted, and submitted files never leave your browser.</div>
+        <div class="disc-foot-note">Sections open one at a time and the timer pauses if you leave this tab. Review progress is held in memory only: reloading the page restarts it. Once complete, acknowledgement is recorded in a first-party cookie on this device and expires automatically after 30 days. No personal data is collected or transmitted, and submitted files never leave your browser.</div>
       </div>
       <button class="btn-disc-ack" id="discAckBtn" type="button" disabled>Locked &middot; 0 of 7 reviewed</button>
     </div>
@@ -4412,7 +4412,7 @@ function downloadReport(){
       '<div class="hdr-top-row">'+
         '<img class="logo-img" src="'+LOGO_URI+'" alt="Rho-9" style="height:38px;flex-shrink:0;">'+
         '<div class="hdr-info">'+
-          '<div class="hdr-title">ModForensics v3.1.1</div>'+
+          '<div class="hdr-title">ModForensics v3.2.7</div>'+
           '<div class="hdr-sub">Minecraft Mod Malware Forensics &middot; Rho-9 Systems</div>'+
         '</div>'+
       '</div>'+
@@ -4588,11 +4588,11 @@ async function rho9HandleSessionOnLoad(){
 // satisfied by opening everything at once. The timer only advances while the
 // tab is visible and a section is open. Review progress is intentionally held
 // in memory only: a reload restarts the review. Once acknowledged, a
-// first-party cookie suppresses the notice for 24 hours.
+// first-party cookie suppresses the notice for 30 days.
 (function(){
   var NOTICE_COOKIE  = "mf_notice_ack";
   var NOTICE_VERSION = "n2";   // bump this string to force every visitor to see the notice again
-  var NOTICE_TTL_H   = 24;
+  var NOTICE_TTL_H   = 720;   // 30 days
   var REQUIRED_MS    = 45000;  // dwell time required per section
   var TICK_MS        = 250;
   // Hidden operator bypass: when a local decompile bridge is detected the
@@ -4632,7 +4632,7 @@ async function rho9HandleSessionOnLoad(){
     }catch(e){}
   }
   // Fallback for contexts where cookies are unavailable (file:// , blocked
-  // storage). Same 24h semantics, stored as an expiry stamp.
+  // storage). Same 30-day semantics, stored as an expiry stamp.
   function readFallback(){
     try{
       var raw = localStorage.getItem(NOTICE_COOKIE);
