@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ModForensics v3.3.2 - Rho-9 Systems</title>
+<title>ModForensics v3.4.0 - Rho-9 Systems</title>
 <!-- JSZip v3.10.1 (MIT / GPLv3, https://stuk.github.io/jszip) inlined so the
      tool is fully functional offline from first load, with no CDN dependency. -->
 <script>
@@ -33,7 +33,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 </style>
 <style>
 /* ============================================================================
-   ModForensics v3.3.2 — Rho-9 Systems
+   ModForensics v3.4.0 — Rho-9 Systems
    UI: reNgine dark theme (Velzon vertical layout, data-bs-theme="dark").
    Dark sidebar, dark topbar, dark canvas, dark elevated cards, soft-tint
    badges. reNgine's indigo is replaced with the Rho-9 cyan and magenta.
@@ -947,7 +947,8 @@ textarea.deob-ta:focus{border-color:var(--brand);}
       </div>
 
       <div class="app-header-pills">
-        <div class="safety-pill" title="No submitted code is executed at any stage"><svg class="ri-ic" style="vertical-align:-2px;margin-right:3px;" aria-hidden="true"><use href="#ri-shield-check-line"></use></svg>STATIC ONLY</div>
+        <div class="safety-pill" id="staticOnlyPill" title="The sample itself is never executed at any stage"><svg class="ri-ic" style="vertical-align:-2px;margin-right:3px;" aria-hidden="true"><use href="#ri-shield-check-line"></use></svg>STATIC ONLY</div>
+        <div class="safety-pill" id="deepDecodePill" title="Tap to learn about and enable sandboxed decode-method interpretation" style="cursor:pointer;background:rgba(150,163,186,.11);border-color:rgba(150,163,186,.3);color:var(--text2);" onclick="onDeepDecodePillClick()">DEEP DECODE: OFF</div>
         <div class="safety-pill" id="bridgePill" title="Local decompile bridge status — tap for settings" style="cursor:pointer;background:rgba(167,139,250,.11);border-color:rgba(167,139,250,.3);color:#a78bfa;" onclick="showBridgeSettings()">BRIDGE: OFFLINE</div>
         <div class="safety-pill" id="cachePill" title="Tap to view session cache summary" style="cursor:pointer;" onclick="showCacheSummary()">CACHE OFF</div>
         <button class="cache-action-btn cache-clear-btn" id="cacheClearBtn" title="Clear session cache" style="display:none;" onclick="doClearCache()"><svg class="ri-ic" aria-hidden="true"><use href="#ri-close-line"></use></svg> Clear</button>
@@ -978,23 +979,16 @@ textarea.deob-ta:focus{border-color:var(--brand);}
 
       <div id="welcomeScreen">
         <img class="logo-img" alt="">
-        <div class="welcome-title">ModForensics v3.3.2</div>
-        <div class="welcome-sub">Load a <strong>.zip</strong> (decompiled jar from decompiler.com), <strong>.litemod</strong>, <strong>.mrpack</strong>, or <strong>.class</strong> file.<br>
+        <div class="welcome-title">ModForensics v3.4.0</div>
+        <div class="welcome-sub">Load a <strong>.zip</strong> (decompiled jar from decompiler.com, or password-protected — see below), <strong>.litemod</strong>, <strong>.mrpack</strong>, or <strong>.class</strong> file.<br>
         <strong>.jar</strong> works too if the local decompile bridge is running and connected (see the BRIDGE pill above), otherwise decompile first at <a href="https://www.decompiler.com" target="_blank">decompiler.com</a> and load the resulting .zip.<br><br>
         Full code viewer &middot; strings &middot; indicators &middot; flagged files &middot; class refs &middot; mixin targets &middot; webhook kill.
-        <span class="rel-note n-fix"><b>Fixed in v3.3.2:</b> the pre-existing static-array XOR walker cleared its integer stack on a method call but never its array stack, so an array actually consumed as an argument to a keyed-XOR helper (the v3.3.1 pattern) stayed "pending" and got wrongly claimed by whatever field-store came next — producing a duplicate, wrong-key garbage decode of bytes the new keyed-XOR decoder was already getting right. Verified with 8 fresh scans each of three live samples: fully deterministic scores and decoded content across every run, and the false duplicate entries are gone without affecting the correct ones.</span>
-        <span class="rel-note n-fix"><b>Fixed in v3.3.1 (critical):</b> the File Inspector crashed on ANY class with an XOR-decoded string — a pre-existing bug (not introduced in v3.3.0) where decoded-field records never stored their raw bytes, but the "Raw bytes" detail view unconditionally read them. Every static-array XOR decode has been silently un-inspectable since this feature was added. Fixed; verified by clicking through every inspector tab with zero console errors.</span>
-        <span class="rel-note n-new"><b>New in v3.3.1:</b> keyed-XOR auto-decoder. Handles decode helpers that take a byte array <i>and</i> a literal integer key per call — common when a sample encrypts many short strings individually rather than sharing one class-wide key. The existing brute-force key search is unreliable here (short arrays let multiple wrong keys pass the printability check by coincidence); this instead reads the real key straight out of the bytecode call site. Verified against a live sample: recovered 291 correctly-decoded strings from a class that previously produced garbage for nearly all of them.</span>
-        <span class="rel-note n-new"><b>Also new in v3.3.1:</b> three new signature families for a Microsoft/Xbox account and browser credential theft chain found in the wild — silent WinRT token theft (msftAccountTheft), Minecraft launcher credential files by exact name across five launchers (launcherCredFiles), and the Chrome "App-Bound Encryption" bypass via its elevation-service CLSID (browserAppBoundBypass). A sample using this chain went from 11/LOW RISK (its real strings were hidden behind keyed-XOR) to 90/HIGH THREAT once decoded and matched.</span>
-        <span class="rel-note n-fix"><b>Also fixed in v3.3.1:</b> both the fragmented-string and keyed-XOR decoders fed their output to IOC extraction but never to signature matching, so a SIGS family that only appears in decoded text (not the raw obfuscated bytecode) could never fire — same root-cause pattern as two other decode-pipeline bugs fixed in v3.3.0.</span>
-        <span class="rel-note n-new"><b>New in v3.3.0:</b> automatic fragmented-string decoder. Reconstructs values hidden behind split-literal + join + regex-cleanup obfuscation (r3m3mb3r_sbft / EHacks ultimatelogger) directly from bytecode, including multi-stage chained calls — no manual reconstruction needed. Verified against the live sample: recovers the actual C2 endpoint, every JSON field name, and every HTTP client class name automatically, with zero clicks.</span>
-        <span class="rel-note n-new"><b>Also new in v3.3.0:</b> every extracted string — from both raw bytecode and decompiled source — is now run through the full decode chain at scan time: base64, hex, hex-stream, Unicode escapes, URL-encoding, Java byte arrays, HTML entities, char-code arrays, and a validity-gated ROT13. Results feed scoring and IOC extraction directly; previously all eight required a manual DEOB click per string.</span>
-        <span class="rel-note n-new"><b>Also new in v3.3.0:</b> sbftLogger named-campaign signature, corroborated by an independent behavioural rule (reflection + hidden network target + string obfuscation) that fires without matching any campaign-specific string — verified against a synthetic sample with the mod ID and credit-line fully stripped.</span>
-        <span class="rel-note n-fix"><b>Fixed in v3.3.0 (decode pipeline):</b> a static-array XOR decoder bug silently discarded every decoded string on the raw bytecode path (results were read from an array after it had already been drained) — a trojanized mod bundled in a modpack scored 25/LOW RISK while the byte-identical decompiled-source copy scored 100/HIGH THREAT; both now agree. Also fixed: reflection and invokedynamic/lambda machinery were bucketed into one capability, mislabeling a plain HTTP downloader as reflective session theft; a confirmed named-campaign match could still land at 69/SUSPICIOUS when its IOCs were hidden by obfuscation (bonus raised +10&rarr;+25); geoip_url detection missed ipapi.co; and an auto-decode ordering bug let base64 falsely claim hex-encoded strings before hex ever got a chance to run.</span>
-        <span class="rel-note n-ui"><b>New in v3.1.0 (UI):</b> interface rebuilt on reNgine's dashboard layout. Vertical sidebar, topbar, card-based panels and a dashboard-style overview with a scoring breakdown, in Rho-9 cyan and magenta.</span>
-        <span class="rel-note n-fix"><b>Fixed in v3.1.0 (accuracy):</b> signature terms that collide with ordinary Minecraft vocabulary have been removed or tightened, and all identifier-style patterns are now matched with word boundaries. Previously an item model named <b>phantom_wing</b> or a lang file containing <b>impacts</b> could push a clean mod to HIGH THREAT. Verified against a four-sample corpus: two clean mods now score 0, an impostor dropper scores 100.</span>
-        <span class="rel-note n-new"><b>Also new in v3.1.0:</b> capability signatures split into a non-scoring informational tier &middot; matches inside resource paths recorded but not scored &middot; behavioural correlation rule for remote executable fetches &middot; corroboration gate so capability alone cannot reach HIGH THREAT &middot; IP and domain extraction no longer trips on User-Agent version strings or Minecraft colour codes &middot; accesswideners and META-INF/services entries now read.</span>
-        <span class="rel-note"><b>v3.0:</b> Local Decompile Bridge &middot; direct .jar support (static analysis only, no code execution) &middot; auto-installing CFR/Vineflower engine &middot; cross-platform &middot; SQLite-blob job storage wiped on shutdown.</span>
+        <span class="rel-note n-new"><b>New in v3.4.0:</b> Deep Decode (opt-in, see the pill in the topbar) &mdash; a purpose-built, hermetically sandboxed interpreter for small static decode methods, for when a sample's obfuscation doesn't match any existing pattern matcher. Rather than recognizing a cipher's shape, it runs the candidate method's actual logic (arithmetic/array/branch opcodes and String/StringBuilder construction only &mdash; no network, filesystem, reflection, or real Java API access; fail-closed on anything else). Verified against a live custom cipher: independently decoded the same 10 strings the hand-built matcher found, then &mdash; with zero cipher-specific code &mdash; also decoded 291 strings out of an unrelated sample's unrelated XOR scheme. Existing matchers (fragmented-string, keyed-XOR, pixel-cipher) keep running regardless; this is a fallback layer, not a replacement.</span>
+        <span class="rel-note n-new"><b>Also new in v3.4.0:</b> password-protected zip support, both legacy ZipCrypto and WinZip AES (PBKDF2-HMAC-SHA1 + AES-CTR) &mdash; the two schemes sample-sharing sources actually use. Prefilled with the MalwareBazaar convention (<code>infected</code>) but editable. Verified byte-perfect against a real encrypted sample: the recovered jar's SHA256 matched its own filename exactly.</span>
+        <span class="rel-note n-fix"><b>Fixed in v3.4.0 (critical):</b> every obfuscation-defeat decoder (keyed-XOR, pixel-cipher, fragmented-string) only ever ran against raw bytecode &mdash; which a bare .jar dropped through the bridge never touched, since bridge decompilation produces Java source text and that path never called the bytecode parser at all. The primary, most common workflow was silently getting zero benefit from any of these decoders. Fixed by also running a structural bytecode pass against the original compiled classes alongside the decompiled source. A real sample went from 22/LOW RISK to 77/HIGH THREAT once this was corrected.</span>
+        <span class="rel-note n-fix"><b>Also fixed in v3.4.0:</b> a decompression-bomb entry (a small zip entry declaring an absurd uncompressed size) could hang or crash the tab &mdash; found live in a real sample shipping a 650KB entry that inflates to 422MB. Every zip-reading code path now checks declared size before decompressing anything, flags oversized entries instead of reading them, and scores the bomb itself as its own hard indicator.</span>
+        <span class="rel-note n-fix"><b>Also fixed in v3.4.0:</b> a named-campaign sample could drop from 100/HIGH THREAT to 50/SUSPICIOUS on nothing more than a cosmetic rebrand (mod ID and description changed, functional code untouched), because the only backup evidence wasn't weighted heavily enough to hold the band on its own. Raised its weight and added an explicit floor so that evidence alone now guarantees HIGH THREAT, independent of whether a campaign name also matches.</span>
+        <span class="rel-note n-fix"><b>Also fixed in v3.4.0:</b> the bridge-session-restore prompt could render on top of the mandatory read-gate notice on a fresh page load instead of after it. Now explicitly sequenced to wait for the notice to close first.</span>
         </div>
       </div>
 
@@ -1065,7 +1059,7 @@ textarea.deob-ta:focus{border-color:var(--brand);}
     </div><!-- /.page-content -->
 
     <footer class="footer">
-      <span>ModForensics v3.3.2 &middot; Rho-9 Systems &middot; <a href="https://modforensics.rho-9.com" target="_blank">modforensics.rho-9.com</a></span>
+      <span>ModForensics v3.4.0 &middot; Rho-9 Systems &middot; <a href="https://modforensics.rho-9.com" target="_blank">modforensics.rho-9.com</a></span>
       <span>Static analysis only. No submitted code is executed. The score is a triage indicator, not a verdict.</span>
     </footer>
   </div><!-- /.main-content -->
@@ -1109,12 +1103,63 @@ textarea.deob-ta:focus{border-color:var(--brand);}
   </div>
 </div>
 
+<div class="modal-overlay" id="zipPasswordModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-title">&#128274; Password-Protected Archive</div>
+    <div class="modal-body">
+      <p style="margin-bottom:12px;line-height:1.7;">This zip is encrypted. Sample-sharing sources (MalwareBazaar, etc.) almost always use <code style="color:var(--cyan);">infected</code> as the archive password specifically so the file is inert to AV/EDR in transit &mdash; that's prefilled below, but enter whatever password you were given if it's different.</p>
+      <input type="password" id="zipPasswordInput" value="infected" autocomplete="off" spellcheck="false"
+        style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:var(--radius);border:1px solid var(--bd);background:var(--card-2);color:var(--head);font-size:13px;font-family:inherit;" />
+      <div id="zipPasswordError" style="display:none;margin-top:10px;color:var(--red);font-size:12.5px;">Wrong password, or an unsupported encryption scheme. Try again.</div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-close-m" id="zipPasswordCancelBtn">Cancel</button>
+      <button class="btn-disc-ack" id="zipPasswordSubmitBtn" style="padding:9px 16px;">Decrypt &amp; Analyze</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deepDecodeModal" style="display:none;">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="modal-title" style="color:var(--amber);">&#9888; Deep Decode: Sandboxed Method Interpretation</div>
+    <div class="modal-body">
+      <p style="margin-bottom:14px;line-height:1.7;">Every decoder in this tool up to now works by recognizing a specific cipher's <em>shape</em> in the bytecode &mdash; a hand-built matcher per obfuscation technique someone had to already find and reverse-engineer. Deep Decode is different: when it finds a small static method fed only literal, compile-time-constant arguments, it <strong style="color:var(--head);">actually runs that method's logic</strong> &mdash; against a purpose-built interpreter this tool implements itself, not a real JVM &mdash; to see what it produces, regardless of what algorithm it turns out to be.</p>
+
+      <div style="background:rgba(37,194,160,.08);border-left:3px solid var(--green);border-radius:4px;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-weight:600;color:var(--green);margin-bottom:6px;">Why you'd want this on</div>
+        <ul style="margin:0;padding-left:18px;line-height:1.7;">
+          <li>Generalizes past hand-built matchers &mdash; catches custom ciphers this tool has never seen before, not just the ones already reverse-engineered into a specific rule.</li>
+          <li>Real, not hypothetical: this exact feature was built because a custom cipher in a live MalwareBazaar sample slipped past every existing matcher until this could just run its actual decode logic.</li>
+          <li>Still fundamentally static. The interpreter never touches the network, filesystem, reflection, or any real Java/browser API &mdash; only arithmetic, array access, and string-building on values already sitting in the file before you opened it. Not the same risk class as sandboxes that actually execute a sample (Cuckoo, ANY.RUN-style detonation).</li>
+        </ul>
+      </div>
+
+      <div style="background:rgba(255,77,109,.08);border-left:3px solid var(--red);border-radius:4px;padding:12px 14px;margin-bottom:12px;">
+        <div style="font-weight:600;color:var(--red);margin-bottom:6px;">Why you'd want this off</div>
+        <ul style="margin:0;padding-left:18px;line-height:1.7;">
+          <li><strong style="color:var(--head);">This is still running logic an attacker wrote, on purpose, to be run.</strong> Anything calling itself a sandbox for hostile code deserves skepticism even when the scope is this narrow &mdash; treat "isolated" as a design goal this tool works toward, not a guarantee.</li>
+          <li>Hard step and call-depth limits stop an adversarial infinite loop from hanging the tab, but limits are a mitigation, not a proof &mdash; a bug in the interpreter itself is the realistic failure mode, not a sandbox escape to your OS.</li>
+          <li>Every instruction outside a fixed whitelist aborts that candidate immediately (arithmetic, array read/write, local variables, branches, and only String/StringBuilder construction) &mdash; but a mistake in that whitelist, not an attacker input, is the actual risk surface here.</li>
+          <li>A decoded value is only as trustworthy as this tool's reimplementation of JVM semantics. Wrong output presented with false confidence is a real failure mode, distinct from and in addition to the execution risk above.</li>
+        </ul>
+      </div>
+
+      <p style="line-height:1.7;color:var(--text2);">The existing matchers (fragmented-string, keyed-XOR, pixel-cipher) keep running <strong style="color:var(--text);">either way</strong> &mdash; this is an addition, not a replacement, and turning it off any time falls back to exactly what ran before it existed.</p>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-close-m" id="deepDecodeCancelBtn">Keep It Off</button>
+      <button class="btn-cfm-kill" id="deepDecodeConfirmBtn">Enable Deep Decode</button>
+    </div>
+  </div>
+</div>
+
 <div class="disc-overlay" id="discModal" role="dialog" aria-modal="true" aria-labelledby="discTitle">
+
   <div class="disc-box">
     <div class="disc-head">
       <div class="disc-kicker">&#9888; Mandatory notice &middot; Please read before submitting a file</div>
       <div class="disc-title" id="discTitle">How to interpret a ModForensics result</div>
-      <div class="disc-sub">ModForensics v3.3.2 &middot; Rho-9 Systems &middot; Static analysis platform</div>
+      <div class="disc-sub">ModForensics v3.4.0 &middot; Rho-9 Systems &middot; Static analysis platform</div>
     </div>
 
     <div class="disc-body">
@@ -1489,6 +1534,314 @@ var RE_REMOTE_EXEC = /https?:\/\/[^\s"'<>]+\.(?:jar|exe|dll|msi|scr|bat|cmd|ps1|
 var RE_RESOURCE_PATH = /(^|\/)(?:assets|data)\/|\/(?:lang|textures|models|sounds|blockstates|recipes|advancements|loot_tables|tags|font|shaders|particles)\//i;
 function isResourcePath(p){ return RE_RESOURCE_PATH.test(String(p||"")); }
 
+// ============================================================================
+// Encrypted-zip support (2026). MalwareBazaar and most other sample-sharing
+// sources ship samples as password-protected zips (almost always "infected")
+// specifically so the archive is inert to AV/EDR in transit. JSZip refuses to
+// even parse a zip containing an encrypted entry ("Encrypted zip are not
+// supported" -- thrown from inside readCentralPart, before any entry data is
+// touched). Rather than replace JSZip or reimplement DEFLATE, this decrypts
+// each entry back into its still-*compressed* bytes and reassembles a brand
+// new, ordinary (unencrypted) zip file byte-for-byte -- then hands that to the
+// EXISTING JSZip.loadAsync() call unmodified. Nothing downstream of the load
+// needs to know encryption was ever involved.
+//
+// Supports both schemes actually seen in the wild for sample archives:
+//   - Legacy ZipCrypto (PKWARE traditional encryption, general-purpose bit 0
+//     set, method != 99): a simple keyed stream cipher, self-contained, no
+//     external crypto needed.
+//   - WinZip AES (vendor "AE", extra field 0x9901; what MalwareBazaar's own
+//     archives actually use -- confirmed AE-2/AES-128/Deflate against a real
+//     sample): PBKDF2-HMAC-SHA1 key derivation + AES-CTR with a
+//     LITTLE-ENDIAN counter (the opposite convention from the Web Crypto
+//     API's built-in AES-CTR, which increments big-endian -- so this doesn't
+//     use SubtleCrypto's CTR mode at all, it uses AES-CBC with a zero IV as
+//     a single-block ECB primitive, which SubtleCrypto doesn't expose
+//     directly, and does the little-endian counter increment/XOR by hand).
+//   SCOPE NOTE: the WinZip AES path derives the encryption key and verifies
+//   the 2-byte password-check value, but does not verify the trailing 10-byte
+//   HMAC-SHA1 authentication code -- a wrong password is still caught (via
+//   the password-check value), but silent corruption of the ciphertext
+//   itself would not be. Full HMAC verification is a reasonable follow-up,
+//   not attempted here to keep this change scoped.
+
+function zipReadU16(dv, off){ return dv.getUint16(off, true); }
+function zipReadU32(dv, off){ return dv.getUint32(off, true); }
+
+// Parses just enough of the central directory to enumerate entries. Does not
+// support ZIP64 (not needed for the small sample archives this targets) or
+// multi-disk archives; throws a clear error rather than misbehaving if seen.
+function parseZipCentralDirectory(bytes){
+  var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  // Find EOCD (PK\x05\x06) by scanning back from the end -- comment field can
+  // push it earlier than a fixed offset would assume.
+  var eocdOff = -1;
+  for(var i=bytes.length-22; i>=0 && i>=bytes.length-22-65536; i--){
+    if(dv.getUint32(i, true) === 0x06054b50){ eocdOff = i; break; }
+  }
+  if(eocdOff < 0) throw new Error("Could not find end-of-central-directory record — not a valid zip file.");
+  var cdCount = zipReadU16(dv, eocdOff+10);
+  var cdOffset = zipReadU32(dv, eocdOff+16);
+  if(cdOffset === 0xffffffff) throw new Error("This zip uses ZIP64, which encrypted-zip support does not handle.");
+
+  var entries = [];
+  var off = cdOffset;
+  for(var n=0; n<cdCount; n++){
+    if(dv.getUint32(off, true) !== 0x02014b50) throw new Error("Corrupted or unsupported central directory record.");
+    var gpFlag = zipReadU16(dv, off+8);
+    var method = zipReadU16(dv, off+10);
+    var crc32 = zipReadU32(dv, off+16);
+    var compSize = zipReadU32(dv, off+20);
+    var uncompSize = zipReadU32(dv, off+24);
+    var nameLen = zipReadU16(dv, off+28);
+    var extraLen = zipReadU16(dv, off+30);
+    var commentLen = zipReadU16(dv, off+32);
+    var localHeaderOffset = zipReadU32(dv, off+42);
+    var nameBytes = bytes.subarray(off+46, off+46+nameLen);
+    var name = new TextDecoder("utf-8").decode(nameBytes);
+    // Walk extra fields looking for the AES header (0x9901)
+    var extraOff = off+46+nameLen, extraEnd = extraOff+extraLen;
+    var aes = null;
+    while(extraOff+4 <= extraEnd){
+      var fid = zipReadU16(dv, extraOff), flen = zipReadU16(dv, extraOff+2);
+      if(fid === 0x9901 && flen >= 7){
+        var vendorVersion = zipReadU16(dv, extraOff+4);
+        var vendorId = String.fromCharCode(bytes[extraOff+6], bytes[extraOff+7]);
+        var strength = bytes[extraOff+8];
+        var actualMethod = zipReadU16(dv, extraOff+9);
+        if(vendorId === "AE") aes = {vendorVersion:vendorVersion, strength:strength, actualMethod:actualMethod};
+      }
+      extraOff += 4+flen;
+    }
+    entries.push({
+      name: name, gpFlag: gpFlag, method: method, crc32: crc32,
+      compSize: compSize, uncompSize: uncompSize,
+      localHeaderOffset: localHeaderOffset, aes: aes,
+      isDir: name.charAt(name.length-1) === "/"
+    });
+    off += 46+nameLen+extraLen+commentLen;
+  }
+  return entries;
+}
+
+// Reads an entry's raw (still-encrypted) data by seeking to its local header.
+function readLocalEntryData(bytes, entry){
+  var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  var off = entry.localHeaderOffset;
+  if(dv.getUint32(off, true) !== 0x04034b50) throw new Error("Corrupted local file header for "+entry.name);
+  var nameLen = zipReadU16(dv, off+26);
+  var extraLen = zipReadU16(dv, off+28);
+  var dataStart = off+30+nameLen+extraLen;
+  return bytes.subarray(dataStart, dataStart+entry.compSize);
+}
+
+// ---- Legacy ZipCrypto (PKWARE traditional encryption) ----
+var ZC_CRC_TABLE = (function(){
+  var t = new Uint32Array(256);
+  for(var n=0;n<256;n++){
+    var c=n;
+    for(var k=0;k<8;k++) c = (c&1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1);
+    t[n]=c>>>0;
+  }
+  return t;
+})();
+function zcCrc32Update(crc, b){ return (ZC_CRC_TABLE[(crc ^ b) & 0xff] ^ (crc >>> 8)) >>> 0; }
+function zipCryptoInitKeys(passwordBytes){
+  var keys = new Uint32Array([0x12345678, 0x23456789, 0x34567890]);
+  for(var i=0;i<passwordBytes.length;i++) zipCryptoUpdateKeys(keys, passwordBytes[i]);
+  return keys;
+}
+function zipCryptoUpdateKeys(keys, b){
+  keys[0] = zcCrc32Update(keys[0], b);
+  keys[1] = (((keys[1] + (keys[0] & 0xff)) >>> 0) * 134775813 + 1) >>> 0;
+  keys[2] = zcCrc32Update(keys[2], keys[1] >>> 24);
+}
+function zipCryptoDecryptByte(keys){
+  var temp = (keys[2] | 2) & 0xffff;
+  return ((temp * (temp ^ 1)) >>> 8) & 0xff;
+}
+// Decrypts a full ZipCrypto entry (12-byte header + ciphertext). Verifies the
+// header's last byte against the high byte of the entry's mod-time or CRC32
+// (per spec, depends on general-purpose bit 3) to catch a wrong password
+// early rather than silently returning garbage.
+function zipCryptoDecryptEntry(passwordBytes, rawData, entry){
+  var keys = zipCryptoInitKeys(passwordBytes);
+  var out = new Uint8Array(rawData.length - 12);
+  var checkByte = 0;
+  for(var i=0;i<12;i++){
+    var c = rawData[i] ^ zipCryptoDecryptByte(keys);
+    zipCryptoUpdateKeys(keys, c & 0xff);
+    checkByte = c & 0xff;
+  }
+  var expected = (entry.gpFlag & 8) ? ((entry.crc32ModTimeHigh!==undefined)?entry.crc32ModTimeHigh:null) : ((entry.crc32 >>> 24) & 0xff);
+  // NOTE: general-purpose bit 3 (streaming/data-descriptor mode, sizes written
+  // after the data rather than in the local header) is uncommon for the small,
+  // simply-packaged sample archives this targets; when set, the early
+  // password-check above is skipped rather than guessed at, and a wrong
+  // password will instead just produce data that fails to decompress further
+  // down the pipeline.
+  if(expected !== null && checkByte !== expected){
+    throw new Error("WRONG_PASSWORD");
+  }
+  for(var j=0;j<out.length;j++){
+    var cb = rawData[12+j] ^ zipCryptoDecryptByte(keys);
+    zipCryptoUpdateKeys(keys, cb & 0xff);
+    out[j] = cb;
+  }
+  return out;
+}
+
+// ---- WinZip AES (vendor "AE") ----
+var AES_SALT_LEN = {1:8, 2:12, 3:16};   // strength 1/2/3 = AES-128/192/256
+var AES_KEY_LEN  = {1:16, 2:24, 3:32};
+async function deriveWinzipAesKeys(passwordBytes, salt, keyBytes){
+  var baseKey = await crypto.subtle.importKey("raw", passwordBytes, {name:"PBKDF2"}, false, ["deriveBits"]);
+  var bits = await crypto.subtle.deriveBits(
+    {name:"PBKDF2", salt:salt, iterations:1000, hash:"SHA-1"},
+    baseKey, (keyBytes*2+2)*8
+  );
+  var all = new Uint8Array(bits);
+  return {
+    encKeyBytes: all.slice(0, keyBytes),
+    hmacKeyBytes: all.slice(keyBytes, keyBytes*2),
+    pwVerify: all.slice(keyBytes*2, keyBytes*2+2)
+  };
+}
+// AES-ECB-encrypt a single 16-byte block via the AES-CBC/zero-IV trick
+// (SubtleCrypto doesn't expose raw ECB, but CBC with IV=0 on exactly one
+// block is mathematically identical to ECB for that block).
+async function aesEcbEncryptBlock(cryptoKey, block16){
+  var result = await crypto.subtle.encrypt({name:"AES-CBC", iv:new Uint8Array(16)}, cryptoKey, block16);
+  return new Uint8Array(result).slice(0, 16); // drop the PKCS7 padding block CBC appends
+}
+async function winzipAesDecrypt(encKeyBytes, ciphertext){
+  var cryptoKey = await crypto.subtle.importKey("raw", encKeyBytes, {name:"AES-CBC"}, false, ["encrypt"]);
+  var out = new Uint8Array(ciphertext.length);
+  var counter = 1; // WinZip AE counter starts at 1, little-endian, whole 16-byte block
+  for(var off=0; off<ciphertext.length; off+=16){
+    var block = new Uint8Array(16);
+    // little-endian encode of `counter` into the first bytes of the block
+    var c = counter;
+    for(var b=0;b<16;b++){ block[b] = c & 0xff; c = Math.floor(c/256); }
+    var keystream = await aesEcbEncryptBlock(cryptoKey, block);
+    var chunkLen = Math.min(16, ciphertext.length-off);
+    for(var k=0;k<chunkLen;k++) out[off+k] = ciphertext[off+k] ^ keystream[k];
+    counter++;
+  }
+  return out;
+}
+async function winzipAesDecryptEntry(passwordBytes, rawData, entry){
+  var strength = entry.aes.strength;
+  var saltLen = AES_SALT_LEN[strength], keyBytes = AES_KEY_LEN[strength];
+  if(!saltLen) throw new Error("Unrecognised AES strength byte in "+entry.name);
+  var salt = rawData.slice(0, saltLen);
+  var pwVerifyGiven = rawData.slice(saltLen, saltLen+2);
+  var ciphertext = rawData.slice(saltLen+2, rawData.length-10); // trailing 10 bytes = truncated HMAC, not verified (see scope note above)
+  var keys = await deriveWinzipAesKeys(passwordBytes, salt, keyBytes);
+  if(keys.pwVerify[0]!==pwVerifyGiven[0] || keys.pwVerify[1]!==pwVerifyGiven[1]){
+    throw new Error("WRONG_PASSWORD");
+  }
+  return await winzipAesDecrypt(keys.encKeyBytes, ciphertext);
+}
+
+// ---- Rebuild a plain (unencrypted) zip from decrypted entries ----
+function zipWriteU16(arr, off, v){ arr[off]=v&0xff; arr[off+1]=(v>>>8)&0xff; }
+function zipWriteU32(arr, off, v){ arr[off]=v&0xff; arr[off+1]=(v>>>8)&0xff; arr[off+2]=(v>>>16)&0xff; arr[off+3]=(v>>>24)&0xff; }
+function rebuildPlainZip(decryptedEntries){
+  // decryptedEntries: [{name, method, crc32, compData(Uint8Array), uncompSize}]
+  var parts = [];
+  var centralParts = [];
+  var offset = 0;
+  var nameBytesCache = decryptedEntries.map(function(e){ return new TextEncoder().encode(e.name); });
+  decryptedEntries.forEach(function(e, idx){
+    var nameBytes = nameBytesCache[idx];
+    var lh = new Uint8Array(30);
+    zipWriteU32(lh, 0, 0x04034b50);
+    zipWriteU16(lh, 4, 20);          // version needed
+    zipWriteU16(lh, 6, 0);           // general purpose flag: cleared, not encrypted
+    zipWriteU16(lh, 8, e.method);
+    zipWriteU16(lh, 10, 0);          // mod time
+    zipWriteU16(lh, 12, 0x21);       // mod date (arbitrary valid DOS date)
+    zipWriteU32(lh, 14, e.crc32>>>0);
+    zipWriteU32(lh, 18, e.compData.length);
+    zipWriteU32(lh, 22, e.uncompSize);
+    zipWriteU16(lh, 26, nameBytes.length);
+    zipWriteU16(lh, 28, 0);
+    parts.push(lh, nameBytes, e.compData);
+
+    var ch = new Uint8Array(46);
+    zipWriteU32(ch, 0, 0x02014b50);
+    zipWriteU16(ch, 4, 20);
+    zipWriteU16(ch, 6, 20);
+    zipWriteU16(ch, 8, 0);
+    zipWriteU16(ch, 10, e.method);
+    zipWriteU16(ch, 12, 0);
+    zipWriteU16(ch, 14, 0x21);
+    zipWriteU32(ch, 16, e.crc32>>>0);
+    zipWriteU32(ch, 20, e.compData.length);
+    zipWriteU32(ch, 24, e.uncompSize);
+    zipWriteU16(ch, 28, nameBytes.length);
+    zipWriteU16(ch, 30, 0);
+    zipWriteU16(ch, 32, 0);
+    zipWriteU16(ch, 34, 0);
+    zipWriteU16(ch, 36, 0);
+    zipWriteU32(ch, 38, 0);
+    zipWriteU32(ch, 42, offset);
+    centralParts.push(ch, nameBytes);
+
+    offset += lh.length + nameBytes.length + e.compData.length;
+  });
+  var centralStart = offset;
+  var centralSize = 0;
+  centralParts.forEach(function(p){ centralSize += p.length; });
+  var eocd = new Uint8Array(22);
+  zipWriteU32(eocd, 0, 0x06054b50);
+  zipWriteU16(eocd, 8, decryptedEntries.length);
+  zipWriteU16(eocd, 10, decryptedEntries.length);
+  zipWriteU32(eocd, 12, centralSize);
+  zipWriteU32(eocd, 16, centralStart);
+
+  var all = parts.concat(centralParts, [eocd]);
+  var total = 0; all.forEach(function(p){ total += p.length; });
+  var out = new Uint8Array(total);
+  var pos = 0;
+  all.forEach(function(p){ out.set(p, pos); pos += p.length; });
+  return out;
+}
+
+// Top-level: given raw zip bytes and a password, returns a rebuilt plain zip
+// buffer JSZip.loadAsync can parse normally. Throws Error("WRONG_PASSWORD")
+// if the password is rejected by any entry's built-in check value, or a
+// descriptive error for anything unsupported (ZIP64, non-AE/non-ZipCrypto
+// encryption schemes, etc).
+async function decryptZipToPlainBuffer(buf, password){
+  var bytes = new Uint8Array(buf);
+  var entries = parseZipCentralDirectory(bytes);
+  var passwordBytes = new TextEncoder().encode(password);
+  var decrypted = [];
+  for(var i=0;i<entries.length;i++){
+    var entry = entries[i];
+    if(entry.isDir) continue;
+    if(!(entry.gpFlag & 1)){
+      // this entry isn't encrypted at all -- just carry its compressed bytes through
+      var plainData = readLocalEntryData(bytes, entry);
+      decrypted.push({name:entry.name, method:entry.method, crc32:entry.crc32, compData:plainData, uncompSize:entry.uncompSize});
+      continue;
+    }
+    var raw = readLocalEntryData(bytes, entry);
+    if(entry.method === 99 && entry.aes){
+      var recovered = await winzipAesDecryptEntry(passwordBytes, raw, entry);
+      decrypted.push({name:entry.name, method:entry.aes.actualMethod, crc32:entry.crc32, compData:recovered, uncompSize:entry.uncompSize});
+    } else if(!entry.aes){
+      var recovered2 = zipCryptoDecryptEntry(passwordBytes, raw, entry);
+      decrypted.push({name:entry.name, method:entry.method, crc32:entry.crc32, compData:recovered2, uncompSize:entry.uncompSize});
+    } else {
+      throw new Error("Unsupported encryption scheme for "+entry.name+" — only legacy ZipCrypto and WinZip AES are handled.");
+    }
+  }
+  return rebuildPlainZip(decrypted);
+}
+
 // 2026: decompression-bomb guard, shared by every code path that reads zip
 // entry content (processFile's main loop, processModpackZip, processDecompiledZip).
 // A single small entry that declares an absurd uncompressed size (crafted
@@ -1536,7 +1889,7 @@ function sanitizeForIOC(t){
 
 // ---- STATE ----
 // FIX #3: iocs always array, never object
-var S = { files:{}, classes:{}, iocs:[], archiveName:null, activeFile:null, loadedFiles:[] };
+var S = { files:{}, classes:{}, iocs:[], archiveName:null, activeFile:null, loadedFiles:[], deepDecodeEnabled:false };
 var pendingKillUrl = "";
 var activeTab = "overview";
 
@@ -2438,7 +2791,8 @@ function parseClass(buf) {
     decodedArrays:{}, disasm:{}, staticDecoded:[], xorKey:null, cp:null,
     fragmentCallSites:[], cleanupRegexes:{}, fragmentDecoded:null,
     keyedXorMethods:{}, keyedXorCallSites:[], keyedXorDecoded:null,
-    pixelCipherMethods:{}, pixelCipherCallSites:[], pixelCipherDecoded:null
+    pixelCipherMethods:{}, pixelCipherCallSites:[], pixelCipherDecoded:null,
+    deepDecodeMethods:{}, deepDecodeMethodInstrs:[], deepDecodeCallSites:[], deepDecodeDecoded:null
   };
   try {
     if(r4()!==0xCAFEBABE){ res.error="Not a .class file (bad magic)"; return res; }
@@ -2664,6 +3018,21 @@ function parseClass(buf) {
       }
       var pcSites = findPixelCipherCallSites(instrs2, cp);
       if(pcSites.length) res.pixelCipherCallSites = res.pixelCipherCallSites.concat(pcSites);
+      // Generic deep-decode candidate registration (opt-in — see the "Deep
+      // Decode" toggle). Detection itself is always cheap, safe static
+      // pattern-matching and runs unconditionally regardless of the toggle,
+      // same as the other decoders; only actually INTERPRETING a candidate
+      // (resolveDeepDecodeCalls, called from deduplicateIOCs) is gated behind
+      // S.deepDecodeEnabled. This lets the UI report "N candidate obfuscated
+      // call sites found" even with the toggle off, rather than the feature
+      // being invisible until enabled.
+      if(isDeepDecodeCandidateMethod(instrs2, md2.desc)){
+        var ddKey = md2.name+':'+md2.desc;
+        res.deepDecodeMethods[ddKey] = true;
+        res.deepDecodeMethodInstrs.push({key:ddKey, instrs:instrs2});
+      }
+      var ddSites = findDeepDecodeCallSites(instrs2, cp);
+      if(ddSites.length) res.deepDecodeCallSites = res.deepDecodeCallSites.concat(ddSites);
     }
 
     // Parse class-level attributes (SourceFile, Deprecated, etc.)
@@ -3090,10 +3459,24 @@ function resolveFragmentedStringCalls(){
 // "private static method taking only int[]/byte[]/int arguments, called with
 // all-literal arguments, returning String" as a decode candidate regardless
 // of algorithm, and concretely execute its bytecode (a small sandboxed
-// interpreter over the ~10-20 arithmetic/array opcodes these decoders
-// actually use) rather than pattern-matching the cipher shape. Not attempted
-// here -- this is a real feature, not a patch, and deserves its own design
-// pass rather than a rushed narrow match bolted onto this function.
+// UPDATE (2026): a narrow structural matcher for this exact cipher shape was
+// added separately -- see isPixelCipherDecodeMethod/findPixelCipherCallSites/
+// decodePixelCipher/resolvePixelCipherCalls below. As predicted above, it only
+// covers this one builder's output, not the general case. It also does not
+// yet actually decode the real 618cd001 sample end-to-end: rescanned after
+// adding it and the verdict is unchanged (still 22/LOW RISK, zero IOCs from
+// the cipher). The algorithm implementation matches the decompiled source
+// bit-for-bit, so the bug is in matching real compiled bytecode to that
+// shape -- either the call-site scanner isn't finding the actual invocation
+// in LoaderClient.class, or the method registration isn't matching decS's
+// real descriptor/owner in StagingHelper.class, most likely a class-name
+// qualification mismatch between the constant-pool method-ref parsed at the
+// call site and the class's own registered thisClass. Not root-caused yet --
+// flagging as a known, currently-broken piece of shipped code rather than
+// letting it sit as a silent no-op. The shape-agnostic fix described above
+// (execute arbitrary small decode methods rather than pattern-match specific
+// shapes) is still the better long-term answer and would make this whole
+// narrow matcher unnecessary.
 function isKeyedXorDecodeMethod(instrs, desc){
   // Cheap descriptor filter first: must take a byte array and an int, return String.
   if(desc.indexOf('[B')<0 || desc.indexOf('I')<0 || desc.indexOf(')Ljava/lang/String;')<0) return false;
@@ -3249,6 +3632,501 @@ function findPixelCipherCallSites(instrs, cp){
   }
   return sites;
 }
+// ============================================================================
+// GENERIC DEEP-DECODE INTERPRETER (2026, opt-in — see the "Deep Decode" toggle
+// and its risk/benefit disclosure in the UI). Every decoder above this point
+// (fragmented-string, keyed-XOR, pixel-cipher) is a hand-built pattern matcher
+// for ONE specific cipher shape someone had to already find in a real sample
+// and reverse-engineer. This is the general answer that makes them a fallback
+// instead of the only line of defense: rather than recognizing a cipher's
+// shape, it actually RUNS the candidate decode method's logic — against a
+// tiny, purpose-built interpreter, not a real JVM — so any future custom
+// cipher built the same structural way (a static method, fed only compile-time
+// literal arguments, that computes a String or byte[]/char[]) gets decoded
+// without anyone having to hand-write a matcher for it first.
+//
+// SAFETY MODEL — read this before trusting or modifying the whitelist below:
+//   - No eval(), no Function(), no dynamic code generation of any kind. This
+//     is a manually-coded switch/dispatch loop over already-disassembled
+//     instruction objects (the same `instrs` arrays every other decoder in
+//     this file reads) — structurally incapable of executing anything that
+//     isn't an explicit case in the switch below.
+//   - Locals and the operand stack only ever hold JS numbers, JS strings, JS
+//     arrays of numbers, or the two specific placeholder objects used to model
+//     java/lang/String and java/lang/StringBuilder construction. There is no
+//     path from this interpreter to a real Java object, a real browser API,
+//     the network, the filesystem, or reflection — those all require opcodes
+//     (invokevirtual/invokeinterface to arbitrary classes, invokedynamic,
+//     native methods) that are not in the whitelist and cause an immediate,
+//     total abort of that candidate the instant they're seen.
+//   - The whitelist is intentionally narrow: arithmetic, array read/write,
+//     local variable load/store, comparisons/branches, and exactly two
+//     emulated constructs (java/lang/String and java/lang/StringBuilder
+//     construction/append/toString, plus a few read-only String methods).
+//     ANY instruction outside this list aborts that candidate immediately —
+//     fail closed, never best-effort partial execution.
+//   - invokestatic is only ever followed for a recursive call to ANOTHER
+//     candidate-safe method in the SAME class (e.g. a decode() that calls its
+//     own helper) — never to an external class. invokestatic to anything else
+//     aborts.
+//   - Hard step and call-depth limits (DEEP_DECODE_MAX_STEPS,
+//     DEEP_DECODE_MAX_CALL_DEPTH) stop an adversarially-crafted infinite loop
+//     or unbounded recursion from hanging the tab — the same class of concern
+//     as the decompression-bomb guard elsewhere in this file, and handled the
+//     same way: a hard resource ceiling with a clean abort, not a best-effort
+//     timeout race.
+//   - Only ever invoked against call sites where every argument is already a
+//     compile-time literal visible in the calling bytecode (same requirement
+//     the keyed-XOR/pixel-cipher matchers use) — this interpreter never
+//     receives attacker-controlled *input* at runtime, because there is no
+//     runtime; everything it touches was already sitting in the constant pool
+//     before this tool ever opened the file.
+
+var DEEP_DECODE_MAX_STEPS = 200000;
+var DEEP_DECODE_MAX_CALL_DEPTH = 6;
+
+// Every opcode this interpreter can execute directly. new/invokestatic/
+// invokevirtual/invokespecial are handled separately below with their own
+// per-target whitelisting (see interpretDeepDecode) — they're deliberately
+// left out of this flat set because "the opcode is fine" isn't sufficient for
+// them; the target matters just as much.
+var DEEP_DECODE_OK_OPS = {
+  nop:1,iconst_m1:1,iconst_0:1,iconst_1:1,iconst_2:1,iconst_3:1,iconst_4:1,iconst_5:1,
+  bipush:1,sipush:1,ldc:1,ldc_w:1,
+  iload:1,iload_0:1,iload_1:1,iload_2:1,iload_3:1,
+  aload:1,aload_0:1,aload_1:1,aload_2:1,aload_3:1,
+  istore:1,istore_0:1,istore_1:1,istore_2:1,istore_3:1,
+  astore:1,astore_0:1,astore_1:1,astore_2:1,astore_3:1,
+  iaload:1,baload:1,caload:1,saload:1,
+  iastore:1,bastore:1,castore:1,sastore:1,
+  arraylength:1,newarray:1,
+  pop:1,pop2:1,dup:1,dup_x1:1,dup_x2:1,dup2:1,swap:1,
+  iadd:1,isub:1,imul:1,idiv:1,irem:1,ineg:1,
+  iand:1,ior:1,ixor:1,ishl:1,ishr:1,iushr:1,iinc:1,
+  i2b:1,i2c:1,i2s:1,i2l:1,
+  ifeq:1,ifne:1,iflt:1,ifge:1,ifgt:1,ifle:1,
+  if_icmpeq:1,if_icmpne:1,if_icmplt:1,if_icmpge:1,if_icmpgt:1,if_icmple:1,
+  if_acmpeq:1,if_acmpne:1,ifnull:1,ifnonnull:1,
+  "goto":1,ireturn:1,areturn:1,"return":1,checkcast:1
+};
+// StringBuilder.append overloads and the handful of read-only String methods
+// decode routines actually use. Anything not listed here on invokevirtual
+// aborts the candidate.
+var DEEP_DECODE_SAFE_VIRTUALS = {
+  "append(I)Ljava/lang/StringBuilder;":1, "append(J)Ljava/lang/StringBuilder;":1,
+  "append(C)Ljava/lang/StringBuilder;":1, "append(Z)Ljava/lang/StringBuilder;":1,
+  "append(Ljava/lang/String;)Ljava/lang/StringBuilder;":1,
+  "append(Ljava/lang/Object;)Ljava/lang/StringBuilder;":1,
+  "toString()Ljava/lang/String;":1,
+  "length()I":1, "charAt(I)C":1, "toCharArray()[C":1, "getBytes()[B":1,
+  "substring(I)Ljava/lang/String;":1, "substring(II)Ljava/lang/String;":1,
+  "trim()Ljava/lang/String;":1
+};
+
+function _ddLocalIdx(argsStr){ var m=/local\[(\d+)\]/.exec(argsStr||""); return m?parseInt(m[1],10):null; }
+function _ddOffsetIndex(instrs, off){ for(var i=0;i<instrs.length;i++) if(instrs[i].off===off) return i; return -1; }
+function _ddBranchTarget(instrs, i){ var m=/->\s*(\d+)/.exec(instrs[i].args||""); return m?_ddOffsetIndex(instrs, parseInt(m[1],10)):-1; }
+function _ddI32(v){ return v|0; }
+
+// Parses a method descriptor into {params:[...], ret:...}, using the same
+// small vocabulary the candidate/argument matchers below understand:
+// "I" (int), "[B" (byte[]), "[I" (int[]), "[C" (char[]), "[S" (short[]),
+// "Ljava/lang/String;" (String). Any other type anywhere in the descriptor
+// (long, float, double, object types other than String, 2D+ arrays) makes
+// the method ineligible — returns null rather than guessing.
+function parseSimpleDescriptor(desc){
+  var m = /^\(([^)]*)\)(.+)$/.exec(desc||"");
+  if(!m) return null;
+  var paramsStr = m[1], retStr = m[2];
+  var params = [], i = 0;
+  while(i < paramsStr.length){
+    if(paramsStr[i]==="I"){ params.push("I"); i++; }
+    else if(paramsStr.substr(i,2)==="[B"){ params.push("[B"); i+=2; }
+    else if(paramsStr.substr(i,2)==="[I"){ params.push("[I"); i+=2; }
+    else if(paramsStr.substr(i,2)==="[C"){ params.push("[C"); i+=2; }
+    else if(paramsStr.substr(i,2)==="[S"){ params.push("[S"); i+=2; }
+    else if(paramsStr.substr(i,18)==="Ljava/lang/String;"){ params.push("Ljava/lang/String;"); i+=18; }
+    else return null; // unsupported param type — not a candidate
+  }
+  var ret;
+  if(retStr==="Ljava/lang/String;") ret="Ljava/lang/String;";
+  else if(retStr==="[B") ret="[B";
+  else if(retStr==="[C") ret="[C";
+  else return null; // unsupported return type — not a candidate
+  return {params:params, ret:ret};
+}
+
+function isDeepDecodeCandidateMethod(instrs, desc){
+  var sig = parseSimpleDescriptor(desc);
+  if(!sig || sig.params.length===0 || sig.params.length>4) return false;
+  // Body must be entirely within the safety whitelist, checked structurally
+  // (not executed) here — actual execution re-validates per-instruction anyway,
+  // this is just an early cheap reject so obviously-ineligible methods never
+  // get registered as candidates in the first place.
+  for(var i=0;i<instrs.length;i++){
+    var nm = instrs[i].name;
+    if(DEEP_DECODE_OK_OPS[nm]) continue;
+    if(nm==="new" || nm==="invokespecial" || nm==="invokestatic" || nm==="invokevirtual") continue; // validated for-real at execution time
+    return false;
+  }
+  return true;
+}
+
+// Generalizes matchByteArrayBuild/matchIntArrayBuild to any of the primitive
+// array types this interpreter supports, for matching literal arguments at a
+// call site. Same shape: newarray, then (dup, index-push, value-push, store)
+// repeated per element.
+var _DD_STORE_OP_FOR_TYPE = {byte:"bastore", "int":"iastore", "char":"castore", "short":"sastore"};
+function matchTypedArrayBuild(instrs, i, jtype){
+  if(!instrs[i] || instrs[i].name!=="newarray" || instrs[i].args!==jtype) return null;
+  var storeOp = _DD_STORE_OP_FOR_TYPE[jtype];
+  if(!storeOp) return null;
+  var j=i+1, vals=[];
+  while(instrs[j] && instrs[j].name==="dup"){
+    j++;
+    if(!instrs[j] || !/^(iconst_|bipush|sipush)/.test(instrs[j].name)) return null;
+    j++;
+    if(!instrs[j] || !/^(iconst_|bipush|sipush)/.test(instrs[j].name)) return null;
+    var v = readIntLiteralInstr(instrs[j]);
+    if(v===null) return null;
+    vals.push(v);
+    j++;
+    if(!instrs[j] || instrs[j].name!==storeOp) return null;
+    j++;
+  }
+  if(vals.length===0) return null;
+  return {endIdx:j, vals:vals};
+}
+// Matches a single literal int (iconst/bipush/sipush) or String (ldc of a
+// String constant) push — the scalar-argument case.
+function matchScalarLiteral(instrs, i, cp, jtype){
+  if(!instrs[i]) return null;
+  if(jtype==="I"){
+    var v = readIntLiteralInstr(instrs[i]);
+    return v===null ? null : {endIdx:i+1, value:v};
+  }
+  if(jtype==="Ljava/lang/String;"){
+    if(instrs[i].name!=="ldc" && instrs[i].name!=="ldc_w") return null;
+    var idx = extractCpIndexFromArgs(instrs[i].args);
+    var ce = idx!==null ? cp[idx] : null;
+    if(!ce || ce.t!==8) return null;
+    return {endIdx:i+1, value:_fragGs(cp, ce.si)};
+  }
+  return null;
+}
+// Forward-matches a full argument list (per the target method's parsed
+// descriptor) starting at instruction i, immediately followed by invokestatic.
+// Returns the matched argument values + the index right after the call, or
+// null if anything doesn't line up as a fully-literal call.
+function matchDeepDecodeArgs(instrs, cp, i, paramTypes){
+  var args = [], pos = i;
+  for(var p=0;p<paramTypes.length;p++){
+    var pt = paramTypes[p], m;
+    if(pt==="[B") m = matchTypedArrayBuild(instrs, pos, "byte");
+    else if(pt==="[I") m = matchTypedArrayBuild(instrs, pos, "int");
+    else if(pt==="[C") m = matchTypedArrayBuild(instrs, pos, "char");
+    else if(pt==="[S") m = matchTypedArrayBuild(instrs, pos, "short");
+    else m = matchScalarLiteral(instrs, pos, cp, pt);
+    if(!m) return null;
+    args.push(pt.charAt(0)==="[" ? m.vals : m.value);
+    pos = m.endIdx;
+  }
+  if(!instrs[pos] || instrs[pos].name!=="invokestatic") return null;
+  var mIdx = extractCpIndexFromArgs(instrs[pos].args);
+  var mref = mIdx!==null ? _fragMethodRef(cp, mIdx) : null;
+  if(!mref) return null;
+  return {owner:mref.owner, name:mref.name, desc:mref.desc, args:args, endIdx:pos+1};
+}
+// Discovers call sites structurally, with NO dependency on already knowing
+// which methods are registered candidates — that matters, because the target
+// of a call can be (and in the real sample this was built to fix, is) in a
+// DIFFERENT class than the caller, which may not even have been parsed yet at
+// this point (classes in an archive are parsed one at a time). Instead, this
+// trusts the call site's OWN resolved target descriptor, which is always
+// available from the constant pool regardless of parse order: try matching a
+// literal argument list against whatever that descriptor actually says, and
+// only keep the site if the count/types/order match exactly. Registered-
+// candidate filtering (does the target method's BODY also pass the safety
+// whitelist?) happens later, in resolveDeepDecodeCalls, once every class in
+// the archive has been parsed and cross-referencing is possible.
+function findDeepDecodeCallSites(instrs, cp){
+  var sites = [], i = 0;
+  while(i < instrs.length){
+    if(instrs[i].name==="newarray" || /^(iconst_|bipush|sipush|ldc)/.test(instrs[i].name)){
+      // Figure out what the call AT THE END of a literal-argument run actually
+      // expects, then check our run matches it -- rather than guessing param
+      // counts/types up front.
+      var probe = i, chunkTypes = [], chunkVals = [], ok = true;
+      while(ok){
+        // An array build's OWN size-push (e.g. "bipush 6" right before its
+        // "newarray int") sits immediately after the PREVIOUS chunk ends when
+        // two array arguments are back-to-back — without skipping it, it gets
+        // mis-matched as a spurious scalar "I" argument of its own (same
+        // pitfall findPixelCipherCallSites documents and skips explicitly).
+        // Only skip when a newarray genuinely follows — a bare int literal
+        // argument that happens to precede something else must NOT be eaten.
+        if(/^(iconst_|bipush|sipush)/.test(instrs[probe] && instrs[probe].name) &&
+           instrs[probe+1] && instrs[probe+1].name==="newarray"){
+          probe = probe+1;
+        }
+        var byteM = matchTypedArrayBuild(instrs, probe, "byte");
+        var intM  = !byteM && matchTypedArrayBuild(instrs, probe, "int");
+        var charM = !byteM && !intM && matchTypedArrayBuild(instrs, probe, "char");
+        var shortM= !byteM && !intM && !charM && matchTypedArrayBuild(instrs, probe, "short");
+        var sclM  = !byteM && !intM && !charM && !shortM && matchScalarLiteral(instrs, probe, cp, "I");
+        var strM  = !byteM && !intM && !charM && !shortM && !sclM && matchScalarLiteral(instrs, probe, cp, "Ljava/lang/String;");
+        var hit = byteM||intM||charM||shortM||sclM||strM;
+        if(!hit) break;
+        if(byteM){ chunkTypes.push("[B"); chunkVals.push(byteM.vals); probe=byteM.endIdx; }
+        else if(intM){ chunkTypes.push("[I"); chunkVals.push(intM.vals); probe=intM.endIdx; }
+        else if(charM){ chunkTypes.push("[C"); chunkVals.push(charM.vals); probe=charM.endIdx; }
+        else if(shortM){ chunkTypes.push("[S"); chunkVals.push(shortM.vals); probe=shortM.endIdx; }
+        else if(sclM){ chunkTypes.push("I"); chunkVals.push(sclM.value); probe=sclM.endIdx; }
+        else { chunkTypes.push("Ljava/lang/String;"); chunkVals.push(strM.value); probe=strM.endIdx; }
+        if(chunkTypes.length>4) { ok=false; break; } // matches the ≤4-param candidate ceiling; stop rather than build an unbounded run
+        if(instrs[probe] && instrs[probe].name==="invokestatic") break; // try resolving here before consuming more
+      }
+      if(chunkTypes.length && instrs[probe] && instrs[probe].name==="invokestatic"){
+        var mIdx = extractCpIndexFromArgs(instrs[probe].args);
+        var mref = mIdx!==null ? _fragMethodRef(cp, mIdx) : null;
+        var sig = mref ? parseSimpleDescriptor(mref.desc) : null;
+        if(mref && sig && sig.params.length===chunkTypes.length &&
+           sig.params.every(function(t,ti){ return t===chunkTypes[ti]; })){
+          sites.push({owner:mref.owner, name:mref.name, desc:mref.desc, args:chunkVals});
+          i = probe+1;
+          continue;
+        }
+      }
+    }
+    i++;
+  }
+  return sites;
+}
+
+// The interpreter itself. `classCtx` is {thisClass, methodsByKey: {key:instrs}}
+// scoped to a single class (recursive calls never leave the class — see the
+// safety model above). Throws on any abort condition; callers must catch.
+function interpretDeepDecode(classCtx, methodKey, argValues, state){
+  state = state || {steps:0, depth:0};
+  state.depth++;
+  if(state.depth > DEEP_DECODE_MAX_CALL_DEPTH) throw new Error("deep-decode: call depth exceeded");
+  var methodsByKey = classCtx.methodsByClass[classCtx.thisClass];
+  var instrs = methodsByKey && methodsByKey[methodKey];
+  if(!instrs) throw new Error("deep-decode: recursive call to non-candidate method");
+  var cp = classCtx.cpByClass[classCtx.thisClass];
+
+  var locals = argValues.slice();
+  var stack = [];
+  var pc = 0;
+
+  function push(v){ stack.push(v); }
+  function pop(){ if(!stack.length) throw new Error("deep-decode: stack underflow"); return stack.pop(); }
+  function unboxStr(v){
+    if(v && v.__strInit) { if(v.value===undefined) throw new Error("deep-decode: use of uninitialized String"); return v.value; }
+    if(v && v.__sb) return v.s;
+    return v;
+  }
+
+  while(true){
+    state.steps++;
+    if(state.steps > DEEP_DECODE_MAX_STEPS) throw new Error("deep-decode: step budget exceeded");
+    if(pc >= instrs.length) throw new Error("deep-decode: fell off end of method without returning");
+    var ins = instrs[pc], nm = ins.name;
+
+    if(nm==="nop"){ pc++; continue; }
+    if(nm==="new"){
+      var idx = extractCpIndexFromArgs(ins.args);
+      var cls = idx!==null ? _fragGc(cp, idx) : null;
+      if(cls==="java/lang/StringBuilder"){ push({__sb:true, s:""}); pc++; continue; }
+      if(cls==="java/lang/String"){ push({__strInit:true, value:undefined}); pc++; continue; }
+      throw new Error("deep-decode: unsupported 'new' target "+cls);
+    }
+    if(nm==="invokespecial"){
+      var idx2 = extractCpIndexFromArgs(ins.args);
+      var mref = idx2!==null ? _fragMethodRef(cp, idx2) : null;
+      if(!mref) throw new Error("deep-decode: unresolved invokespecial");
+      if(mref.owner==="java/lang/StringBuilder" && mref.name==="<init>"){ pop(); pc++; continue; } // objref only, no-arg ctor already initialized at `new`
+      if(mref.owner==="java/lang/Object" && mref.name==="<init>"){ pop(); pc++; continue; }
+      if(mref.owner==="java/lang/String" && mref.name==="<init>"){
+        var sig2 = parseSimpleDescriptor(mref.desc.replace(/^\((.*)\)V$/, "($1)Ljava/lang/String;")); // reuse the param parser
+        var pcount = sig2 ? sig2.params.length : 1;
+        var ctorArgs = []; for(var ca=0; ca<pcount; ca++) ctorArgs.unshift(pop());
+        var objref = pop();
+        if(!objref || !objref.__strInit) throw new Error("deep-decode: String.<init> on unexpected receiver");
+        var built;
+        if(ctorArgs.length===1 && Array.isArray(ctorArgs[0])){
+          built = ctorArgs[0].map(function(b){ return String.fromCharCode(b & 0xFF); }).join("");
+        } else if(ctorArgs.length===0){
+          built = "";
+        } else {
+          throw new Error("deep-decode: unsupported String constructor shape");
+        }
+        objref.value = built;
+        pc++; continue;
+      }
+      throw new Error("deep-decode: unsupported invokespecial target "+mref.owner+"."+mref.name);
+    }
+    if(nm==="invokevirtual"){
+      var idx3 = extractCpIndexFromArgs(ins.args);
+      var mref2 = idx3!==null ? _fragMethodRef(cp, idx3) : null;
+      if(!mref2) throw new Error("deep-decode: unresolved invokevirtual");
+      var vkey = mref2.name+mref2.desc;
+      if(!DEEP_DECODE_SAFE_VIRTUALS[vkey]) throw new Error("deep-decode: unsupported invokevirtual "+mref2.owner+"."+vkey);
+      if(mref2.name==="append"){
+        var av = pop(), recv = pop();
+        if(!recv || !recv.__sb) throw new Error("deep-decode: append on non-StringBuilder");
+        recv.s += (typeof av==="number") ? (mref2.desc.indexOf("(C)")===0?String.fromCharCode(av):String(av)) : unboxStr(av);
+        push(recv); pc++; continue;
+      }
+      if(mref2.name==="toString"){ var r0=pop(); push(unboxStr(r0)); pc++; continue; }
+      if(mref2.name==="length"){ var r1=unboxStr(pop()); push(r1.length); pc++; continue; }
+      if(mref2.name==="charAt"){ var ci=pop(), r2=unboxStr(pop()); push(r2.charCodeAt(ci)); pc++; continue; }
+      if(mref2.name==="toCharArray"){ var r3=unboxStr(pop()); push(r3.split("").map(function(c){return c.charCodeAt(0);})); pc++; continue; }
+      if(mref2.name==="getBytes"){ var r4=unboxStr(pop()); push(r4.split("").map(function(c){return c.charCodeAt(0)&0xFF;})); pc++; continue; }
+      if(mref2.name==="substring"){ var b2=(mref2.desc==="(II)Ljava/lang/String;")?pop():null; var a2=pop(); var r5=unboxStr(pop()); push(b2!==null?r5.substring(a2,b2):r5.substring(a2)); pc++; continue; }
+      if(mref2.name==="trim"){ var r6=unboxStr(pop()); push(r6.trim()); pc++; continue; }
+      throw new Error("deep-decode: unhandled safe virtual "+vkey);
+    }
+    if(nm==="invokestatic"){
+      var idx4 = extractCpIndexFromArgs(ins.args);
+      var mref3 = idx4!==null ? _fragMethodRef(cp, idx4) : null;
+      if(!mref3) throw new Error("deep-decode: unresolved invokestatic");
+      var targetMethods = classCtx.methodsByClass[mref3.owner];
+      var subKey = mref3.name+":"+mref3.desc;
+      var subSig = parseSimpleDescriptor(mref3.desc);
+      if(!targetMethods || !subSig || !targetMethods[subKey]) throw new Error("deep-decode: recursive call to non-candidate "+mref3.owner+"."+subKey);
+      var subArgs = []; for(var sa=0; sa<subSig.params.length; sa++) subArgs.unshift(pop());
+      var subCtx = {thisClass:mref3.owner, methodsByClass:classCtx.methodsByClass, cpByClass:classCtx.cpByClass};
+      var subRet = interpretDeepDecode(subCtx, subKey, subArgs, state);
+      push(subRet); pc++; continue;
+    }
+
+    if(!DEEP_DECODE_OK_OPS[nm]) throw new Error("deep-decode: unsupported opcode "+nm);
+
+    if(/^iconst_/.test(nm)){ push(nm==="iconst_m1"?-1:parseInt(nm.slice(7),10)); pc++; continue; }
+    if(nm==="bipush"||nm==="sipush"){ push(parseInt(ins.args,10)); pc++; continue; }
+    if(nm==="ldc"||nm==="ldc_w"){
+      var lidx = extractCpIndexFromArgs(ins.args); var lce = lidx!==null?cp[lidx]:null;
+      if(lce && lce.t===8) push(_fragGs(cp, lce.si));
+      else if(lce && lce.t===3) push(lce.v|0);
+      else throw new Error("deep-decode: unsupported ldc constant");
+      pc++; continue;
+    }
+    if(/^iload/.test(nm)){ var li = nm==="iload"?_ddLocalIdx(ins.args):parseInt(nm.slice(6),10); push(locals[li]|0); pc++; continue; }
+    if(/^aload/.test(nm)){ var li2 = nm==="aload"?_ddLocalIdx(ins.args):parseInt(nm.slice(6),10); push(locals[li2]); pc++; continue; }
+    if(/^istore/.test(nm)){ var si = nm==="istore"?_ddLocalIdx(ins.args):parseInt(nm.slice(7),10); locals[si]=_ddI32(pop()); pc++; continue; }
+    if(/^astore/.test(nm)){ var si2 = nm==="astore"?_ddLocalIdx(ins.args):parseInt(nm.slice(7),10); locals[si2]=pop(); pc++; continue; }
+    if(nm==="iinc"){ var m3=/local\[(\d+)\]\s*\+=\s*(-?\d+)/.exec(ins.args); if(!m3) throw new Error("deep-decode: bad iinc"); locals[+m3[1]]=_ddI32((locals[+m3[1]]|0)+parseInt(m3[2],10)); pc++; continue; }
+
+    if(nm==="newarray"){ var n=pop(); var arr=new Array(n); for(var fi=0;fi<n;fi++) arr[fi]=0; push(arr); pc++; continue; }
+    if(nm==="arraylength"){ var arr2=pop(); push(arr2.length); pc++; continue; }
+    if(nm==="iaload"||nm==="baload"||nm==="caload"||nm==="saload"){ var ix=pop(), ar=pop(); push(ar[ix]|0); pc++; continue; }
+    if(nm==="iastore"){ var v1=pop(), ix1=pop(), ar1=pop(); ar1[ix1]=_ddI32(v1); pc++; continue; }
+    if(nm==="bastore"){ var v2=pop(), ix2=pop(), ar2=pop(); ar2[ix2]=((v2&0xFF)<<24)>>24; pc++; continue; }
+    if(nm==="castore"){ var v3=pop(), ix3=pop(), ar3=pop(); ar3[ix3]=v3&0xFFFF; pc++; continue; }
+    if(nm==="sastore"){ var v4=pop(), ix4=pop(), ar4=pop(); ar4[ix4]=((v4&0xFFFF)<<16)>>16; pc++; continue; }
+
+    if(nm==="pop"){ pop(); pc++; continue; }
+    if(nm==="pop2"){ pop(); pop(); pc++; continue; }
+    if(nm==="dup"){ var d=stack[stack.length-1]; push(d); pc++; continue; }
+    if(nm==="dup_x1"){ var a1=pop(),b1=pop(); push(a1); push(b1); push(a1); pc++; continue; }
+    if(nm==="dup_x2"){ var a2=pop(),b2=pop(),c2=pop(); push(a2); push(c2); push(b2); push(a2); pc++; continue; }
+    if(nm==="dup2"){ var a3=pop(),b3=pop(); push(b3); push(a3); push(b3); push(a3); pc++; continue; }
+    if(nm==="swap"){ var a4=pop(),b4=pop(); push(a4); push(b4); pc++; continue; }
+
+    if(nm==="iadd"){ var v6=pop(),v5=pop(); push(_ddI32(v5+v6)); pc++; continue; }
+    if(nm==="isub"){ var v8=pop(),v7=pop(); push(_ddI32(v7-v8)); pc++; continue; }
+    if(nm==="imul"){ var v10=pop(),v9=pop(); push(_ddI32(Math.imul(v9,v10))); pc++; continue; }
+    if(nm==="idiv"){ var v12=pop(),v11=pop(); if(v12===0) throw new Error("deep-decode: division by zero"); push(_ddI32((v11/v12)|0)); pc++; continue; }
+    if(nm==="irem"){ var v14=pop(),v13=pop(); if(v14===0) throw new Error("deep-decode: division by zero"); push(_ddI32(v13%v14)); pc++; continue; }
+    if(nm==="ineg"){ push(_ddI32(-pop())); pc++; continue; }
+    if(nm==="iand"){ var v16=pop(),v15=pop(); push(v15&v16); pc++; continue; }
+    if(nm==="ior"){ var v18=pop(),v17=pop(); push(v17|v18); pc++; continue; }
+    if(nm==="ixor"){ var v20=pop(),v19=pop(); push(v19^v20); pc++; continue; }
+    if(nm==="ishl"){ var v22=pop(),v21=pop(); push(_ddI32(v21<<(v22&31))); pc++; continue; }
+    if(nm==="ishr"){ var v24=pop(),v23=pop(); push(_ddI32(v23>>(v24&31))); pc++; continue; }
+    if(nm==="iushr"){ var v26=pop(),v25=pop(); push(_ddI32(v25>>>(v26&31))); pc++; continue; }
+    if(nm==="i2b"){ push((pop()<<24)>>24); pc++; continue; }
+    if(nm==="i2c"){ push(pop()&0xFFFF); pc++; continue; }
+    if(nm==="i2s"){ push((pop()<<16)>>16); pc++; continue; }
+    if(nm==="i2l"){ pc++; continue; } // kept as a JS number; no separate long representation
+
+    if(nm==="ifeq"){ pc = pop()===0 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="ifne"){ pc = pop()!==0 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="iflt"){ pc = pop()<0 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="ifge"){ pc = pop()>=0 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="ifgt"){ pc = pop()>0 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="ifle"){ pc = pop()<=0 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="ifnull"){ pc = (pop()==null) ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="ifnonnull"){ pc = (pop()!=null) ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="if_icmpeq"){ var r8=pop(),r7=pop(); pc = r7===r8 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="if_icmpne"){ var r10=pop(),r9=pop(); pc = r9!==r10 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="if_icmplt"){ var r12=pop(),r11=pop(); pc = r11<r12 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="if_icmpge"){ var r14=pop(),r13=pop(); pc = r13>=r14 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="if_icmpgt"){ var r16=pop(),r15=pop(); pc = r15>r16 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="if_icmple"){ var r18=pop(),r17=pop(); pc = r17<=r18 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="if_acmpeq"){ var r20=pop(),r19=pop(); pc = r19===r20 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="if_acmpne"){ var r22=pop(),r21=pop(); pc = r21!==r22 ? _ddBranchTarget(instrs,pc) : pc+1; continue; }
+    if(nm==="goto"){ pc = _ddBranchTarget(instrs,pc); continue; }
+
+    if(nm==="ireturn"){ state.depth--; return pop()|0; }
+    if(nm==="areturn"){ state.depth--; return unboxStr(pop()); }
+    if(nm==="return"){ state.depth--; return undefined; }
+    if(nm==="checkcast"){ pc++; continue; } // no real type hierarchy modeled; harmless as a no-op here
+
+    throw new Error("deep-decode: unhandled whitelisted opcode "+nm); // should be unreachable
+  }
+}
+
+function resolveDeepDecodeCalls(){
+  if(!S.deepDecodeEnabled) return;
+  // Cross-class lookup, same shape as resolvePixelCipherCalls's methodsByClass:
+  // the call site (literal args + invokestatic) and the decode method it
+  // targets are very often in DIFFERENT classes (confirmed on the real sample
+  // this whole feature was built to handle -- LoaderClient calls
+  // StagingHelper.decS, two separate classes). Registering per-class during
+  // parseClass and only cross-referencing here, after every class in the
+  // archive has been parsed, is what makes that order-independent.
+  var methodsByClass = {}, cpByClass = {};
+  Object.values(S.classes).forEach(function(c){
+    if(c.deepDecodeMethodInstrs && c.deepDecodeMethodInstrs.length){
+      var m = {}; c.deepDecodeMethodInstrs.forEach(function(x){ m[x.key] = x.instrs; });
+      methodsByClass[c.thisClass] = m;
+      cpByClass[c.thisClass] = c.cp;
+    }
+  });
+  Object.values(S.classes).forEach(function(c){
+    if(!c.deepDecodeCallSites || !c.deepDecodeCallSites.length) return;
+    c.deepDecodeDecoded = [];
+    var seen = {};
+    c.deepDecodeCallSites.forEach(function(site){
+      var targetMethods = methodsByClass[site.owner];
+      if(!targetMethods) return;
+      var key = site.name+":"+site.desc;
+      if(!targetMethods[key]) return;
+      var classCtx = {thisClass:site.owner, methodsByClass:methodsByClass, cpByClass:cpByClass};
+      var result;
+      try{ result = interpretDeepDecode(classCtx, key, site.args, {steps:0, depth:0}); }
+      catch(err){ c.deepDecodeDecoded.push({error:String((err&&err.message)||err), method:site.owner+"."+key}); return; }
+      var decoded = Array.isArray(result) ? result.map(function(b){ return String.fromCharCode(b&0xFF); }).join("") : String(result==null?"":result);
+      if(!decoded || decoded.length<2 || seen[decoded]) return;
+      seen[decoded]=1;
+      c.deepDecodeDecoded.push({decoded:decoded, method:site.owner+"."+key});
+      var iocs = extractIOCs(decoded, c.path+"[deepdecode:"+key+"]");
+      iocs.forEach(function(ioc){ ioc.decoded=true; ioc.technique="deep-decode"; S.iocs.push(ioc); });
+      var sigHits = scanSigs(decoded, []);
+      if(sigHits.length){
+        c.malwareSigs = (c.malwareSigs||[]).concat(sigHits);
+        if(S.files[c.path]) S.files[c.path].sigs = (S.files[c.path].sigs||[]).concat(sigHits);
+      }
+      if(iocs.length || sigHits.length){
+        c.flagged = true;
+        if(S.files[c.path]) S.files[c.path].flagged = true;
+      }
+    });
+  });
+}
+
 function resolvePixelCipherCalls(){
   var methodsByClass = {};
   Object.values(S.classes).forEach(function(c){
@@ -3538,6 +4416,52 @@ async function processFile(file, mergeMode){
       showInfoModal("Decompile Failed","<div class=\"err-box\">"+esc(err.message)+"</div><br>You can still decompile manually at <a href=\"https://www.decompiler.com\" target=\"_blank\" style=\"color:var(--pink)\">decompiler.com</a> and load the resulting .zip.");
       return;
     }
+    // 2026: also run structural bytecode analysis on the ORIGINAL compiled
+    // classes, not just the decompiled source. Obfuscation-defeat features
+    // (resolveKeyedXorCalls, resolvePixelCipherCalls, resolveFragmentedString-
+    // Calls) key off things only visible in real bytecode -- opcodes like
+    // ixor, newarray, bastore -- which decompiled Java text doesn't preserve
+    // in a matchable form. Before this, those features only ever ran on the
+    // nested-jar-inside-zip path (a .zip containing a raw .jar, parsed
+    // directly without decompiling); a bare .jar dropped and decompiled via
+    // the bridge -- the primary, most common workflow -- never touched
+    // bytecode parsing at all, so every keyed/pixel-cipher-obfuscated string
+    // in that path silently stayed undecoded. Confirmed on real MalwareBazaar
+    // siblings: identical StagingHelper.decS cipher, f91714f8... (fed via a
+    // zip wrapping the jar, nested-jar path) decoded correctly; 618cd001...
+    // (fed as a bare jar, bridge-decompile path) did not, until this.
+    // This does NOT duplicate IOC/signature extraction -- parseClass() is
+    // called directly rather than processClassBuf(), so only the structural
+    // fields (pixelCipherMethods/CallSites, keyedXorMethods/CallSites,
+    // fragmentCallSites, staticDecoded) are harvested; the actual text/IOC
+    // scan still happens exactly once, against the decompiled source, via
+    // processDecompiledZip below. Entries are keyed by the SAME path the
+    // decompiled .java will use (thisClass + ".java", matching vineflower's
+    // own layout) so resolve*Calls() can still reach the readable source file
+    // to flag it, not just the invisible synthetic bytecode entry.
+    try{
+      var rawJarBuf = await file.arrayBuffer();
+      var rawJarZip = await JSZip.loadAsync(rawJarBuf);
+      var rawClassEntries = [];
+      rawJarZip.forEach(function(p,e){ if(!e.dir && p.toLowerCase().endsWith(".class")) rawClassEntries.push({path:p,entry:e}); });
+      for(var rci=0; rci<rawClassEntries.length; rci++){
+        var rcPath = rawClassEntries[rci].path, rcEntry = rawClassEntries[rci].entry;
+        var rcDeclSize = declaredEntrySize(rcEntry);
+        if(rcDeclSize!==null && rcDeclSize > ZIP_ENTRY_MAX_BYTES){ flagOversizedEntry(file.name+"!/"+rcPath, rcDeclSize); continue; }
+        var rcBuf = await rcEntry.async("arraybuffer");
+        var rcParsed = parseClass(rcBuf);
+        if(rcParsed.error || !rcParsed.thisClass) continue;
+        var hasStructuralData = rcParsed.staticDecoded.length || rcParsed.keyedXorCallSites.length ||
+          Object.keys(rcParsed.keyedXorMethods).length || rcParsed.pixelCipherCallSites.length ||
+          Object.keys(rcParsed.pixelCipherMethods).length || rcParsed.fragmentCallSites.length;
+        if(!hasStructuralData) continue;
+        var syntheticPath = rcParsed.thisClass + ".java";
+        S.classes[syntheticPath] = rcParsed;
+        rcParsed.path = syntheticPath;
+      }
+    }catch(rawErr){
+      console.warn("Bytecode-level obfuscation-defeat pass failed (non-fatal — decompiled source scan still proceeds):", rawErr);
+    }
     ext="zip"; // decompiled result is a zip of .java files — hand off to the existing zip pipeline below
   }
   if(ext==="class"){
@@ -3546,7 +4470,19 @@ async function processFile(file, mergeMode){
   } else {
     try{
       var buf=bridgeBuf || await file.arrayBuffer();
-      var zip=await JSZip.loadAsync(buf);
+      var zip;
+      try{
+        zip = await JSZip.loadAsync(buf);
+      }catch(loadErr){
+        if(loadErr.message === "Encrypted zip are not supported"){
+          setStatus("Password-protected archive — waiting for password...");
+          var rebuiltBuf = await resolveEncryptedZip(buf);
+          if(rebuiltBuf === null){ setStatus("Cancelled — no password entered."); return; }
+          zip = await JSZip.loadAsync(rebuiltBuf);
+        } else {
+          throw loadErr;
+        }
+      }
       var entries=[]; zip.forEach(function(p,e){ if(!e.dir) entries.push({path:p,entry:e}); });
 
       // FIX #6: detect modpack ZIPs first and handle gracefully
@@ -3637,6 +4573,7 @@ function deduplicateIOCs(){
   resolveFragmentedStringCalls();
   resolveKeyedXorCalls();
   resolvePixelCipherCalls();
+  resolveDeepDecodeCalls();
   var seen={}; S.iocs=S.iocs.filter(function(i){ var k=i.type+"::"+i.value; if(seen[k]) return false; seen[k]=1; return true; });
   var urlCoverage=S.iocs.filter(function(i){ return i.type==="webhook"||i.type==="url"||i.type==="payload_url"||i.type==="telegram_api"; }).map(function(i){ return i.value.toLowerCase(); });
   S.iocs=S.iocs.filter(function(i){
@@ -5370,7 +6307,7 @@ function downloadReport(){
       '<div class="hdr-top-row">'+
         '<img class="logo-img" src="'+LOGO_URI+'" alt="Rho-9" style="height:38px;flex-shrink:0;">'+
         '<div class="hdr-info">'+
-          '<div class="hdr-title">ModForensics v3.3.2</div>'+
+          '<div class="hdr-title">ModForensics v3.4.0</div>'+
           '<div class="hdr-sub">Minecraft Mod Malware Forensics &middot; Rho-9 Systems</div>'+
         '</div>'+
       '</div>'+
@@ -5514,6 +6451,95 @@ async function rho9HandleSessionOnLoad(){
     var offerRestore = function(){ rho9OfferSessionRestore(data); };
     if(window.rho9OnNoticeClosed) window.rho9OnNoticeClosed(offerRestore);
     else offerRestore();
+  }
+}
+
+// Shows the zip-password modal and resolves with the entered password, or
+// null if cancelled. Re-usable across attempts: pass a truthy `retry` to show
+// the "wrong password" message from a previous failed attempt.
+function updateDeepDecodePill(){
+  var pill = document.getElementById("deepDecodePill");
+  var staticPill = document.getElementById("staticOnlyPill");
+  if(!pill) return;
+  if(S.deepDecodeEnabled){
+    pill.textContent = "DEEP DECODE: ON";
+    pill.style.background = "rgba(255,77,109,.13)";
+    pill.style.borderColor = "rgba(255,77,109,.35)";
+    pill.style.color = "var(--red)";
+    if(staticPill) staticPill.title = "The sample itself is never executed. Deep Decode is ON: isolated candidate decode methods ARE interpreted in a sandbox — see the Deep Decode pill.";
+  } else {
+    pill.textContent = "DEEP DECODE: OFF";
+    pill.style.background = "rgba(150,163,186,.11)";
+    pill.style.borderColor = "rgba(150,163,186,.3)";
+    pill.style.color = "var(--text2)";
+    if(staticPill) staticPill.title = "The sample itself is never executed at any stage";
+  }
+}
+function onDeepDecodePillClick(){
+  if(S.deepDecodeEnabled){
+    // Turning off needs no confirmation — only enabling a code-execution
+    // path (even this narrowly scoped one) requires reading the risks first.
+    S.deepDecodeEnabled = false;
+    updateDeepDecodePill();
+    setStatus("Deep Decode disabled — falling back to pattern-matched decoders only.");
+    return;
+  }
+  document.getElementById("deepDecodeModal").style.display = "flex";
+}
+(function initDeepDecodeModal(){
+  var modal = document.getElementById("deepDecodeModal");
+  var cancelBtn = document.getElementById("deepDecodeCancelBtn");
+  var confirmBtn = document.getElementById("deepDecodeConfirmBtn");
+  if(!modal || !cancelBtn || !confirmBtn) return;
+  cancelBtn.addEventListener("click", function(){ modal.style.display = "none"; });
+  confirmBtn.addEventListener("click", function(){
+    modal.style.display = "none";
+    S.deepDecodeEnabled = true;
+    updateDeepDecodePill();
+    setStatus("Deep Decode enabled for this session — re-run a scan (or drop the file again) to apply it.");
+  });
+})();
+
+function promptZipPassword(retry){
+  return new Promise(function(resolve){
+    var modal = document.getElementById("zipPasswordModal");
+    var input = document.getElementById("zipPasswordInput");
+    var errorEl = document.getElementById("zipPasswordError");
+    var submitBtn = document.getElementById("zipPasswordSubmitBtn");
+    var cancelBtn = document.getElementById("zipPasswordCancelBtn");
+    errorEl.style.display = retry ? "block" : "none";
+    modal.style.display = "flex";
+    input.focus(); input.select();
+
+    function cleanup(){
+      modal.style.display = "none";
+      submitBtn.removeEventListener("click", onSubmit);
+      cancelBtn.removeEventListener("click", onCancel);
+      input.removeEventListener("keydown", onKeydown);
+    }
+    function onSubmit(){ var v = input.value; cleanup(); resolve(v); }
+    function onCancel(){ cleanup(); resolve(null); }
+    function onKeydown(e){ if(e.key === "Enter") onSubmit(); if(e.key === "Escape") onCancel(); }
+    submitBtn.addEventListener("click", onSubmit);
+    cancelBtn.addEventListener("click", onCancel);
+    input.addEventListener("keydown", onKeydown);
+  });
+}
+
+// Orchestrates the full password-retry loop for a given raw zip buffer.
+// Returns a rebuilt plain-zip ArrayBuffer on success, or null if the user
+// cancels. Throws for genuinely unsupported archives (not a password issue).
+async function resolveEncryptedZip(buf){
+  var retry = false;
+  while(true){
+    var pw = await promptZipPassword(retry);
+    if(pw === null) return null; // user cancelled
+    try{
+      return await decryptZipToPlainBuffer(buf, pw);
+    }catch(err){
+      if(err.message === "WRONG_PASSWORD"){ retry = true; continue; }
+      throw err; // unsupported scheme etc — let the caller show a real error
+    }
   }
 }
 
